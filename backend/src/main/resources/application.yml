@@ -1,0 +1,29 @@
+spring:
+  application:
+    name: onestep
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:onestep}?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    username: ${DB_USER:onestep}
+    password: ${DB_PASSWORD:onestep}
+  jpa:
+    hibernate:
+      ddl-auto: update   # 해커톤 기간 한정. 운영 전환 시 Flyway로 교체
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+
+server:
+  port: 8080
+
+onestep:
+  cors:
+    allowed-origins: ${CORS_ORIGINS:http://localhost:3000}
+  youth-center:          # 온통청년 API
+    enabled: ${YOUTHCENTER_ENABLED:false}
+    base-url: https://www.youthcenter.go.kr
+    api-key: ${YOUTHCENTER_API_KEY:}
+  gemini:                # AI 아바타 대화
+    enabled: ${GEMINI_ENABLED:false}
+    api-key: ${GEMINI_API_KEY:}
+    model: ${GEMINI_MODEL:}
