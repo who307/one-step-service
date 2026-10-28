@@ -76,7 +76,7 @@ export default function ProgramsPage() {
 
       <fieldset className="mt-4">
         <legend className="text-[14px] font-semibold text-ink-2">활동 종류</legend>
-        <div className="-mx-4 mt-2 flex gap-2 overflow-x-auto px-4 pb-1">
+        <div className="mt-2 flex flex-wrap gap-2">
           {(Object.keys(CATEGORY_LABEL) as Category[]).map((c) => (
             <ToggleChip key={c} label={CATEGORY_LABEL[c]} selected={category === c} onToggle={() => setCategory(category === c ? undefined : c)} />
           ))}
@@ -84,7 +84,7 @@ export default function ProgramsPage() {
       </fieldset>
       <fieldset className="mt-3">
         <legend className="text-[14px] font-semibold text-ink-2">참여 방식</legend>
-        <div className="-mx-4 mt-2 flex gap-2 overflow-x-auto px-4 pb-1">
+        <div className="mt-2 flex flex-wrap gap-2">
           {(Object.keys(MODE_LABEL) as Mode[]).map((m) => (
             <ToggleChip key={m} label={MODE_LABEL[m]} selected={mode === m} onToggle={() => setMode(mode === m ? undefined : m)} />
           ))}
