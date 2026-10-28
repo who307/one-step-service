@@ -29,18 +29,27 @@ export function stopWeight(type: StopType): "big" | "mid" | "small" {
 }
 
 /**
- * 다녀왔는지 물어볼 공고: 연습한 적이 있고, 마지막 연습 뒤에 다녀옴·쉬어감 답이 없는 공고.
- * 가장 최근에 연습한 공고 하나만 돌려준다(한 번에 하나만 묻는다).
+ * 다녀왔는지 물어볼 공고들: 연습한 적이 있고, 마지막 연습 뒤에 다녀옴·쉬어감 답이 없는 공고.
+ * 공고마다 마지막 연습 하나씩, 최근에 연습한 순서로 돌려준다.
+ * 다른 공고를 연습하고 답해도 앞서 답하지 않은 공고는 목록에 남는다.
  */
-export function pendingVisit(stops: JourneyStop[]): JourneyStop | null {
+export function pendingVisits(stops: JourneyStop[]): JourneyStop[] {
+  const seen = new Set<string>();
+  const pending: JourneyStop[] = [];
   for (let i = stops.length - 1; i >= 0; i--) {
     const s = stops[i];
-    if (s.type !== "practice" || s.programKey === GENERAL_PRACTICE) continue;
+    if (s.type !== "practice" || s.programKey === GENERAL_PRACTICE || seen.has(s.programKey)) continue;
+    seen.add(s.programKey);
     const answered = stops.slice(i + 1).some((t) => t.programKey === s.programKey && (t.type === "visited" || t.type === "rested"));
     const visitedBefore = stops.some((t) => t.programKey === s.programKey && t.type === "visited");
-    return answered || visitedBefore ? null : s;
+    if (!answered && !visitedBefore) pending.push(s);
   }
-  return null;
+  return pending;
+}
+
+/** 지금 물어볼 공고 하나(한 번에 하나만 묻는다). 답하면 다음 공고를 묻는다. */
+export function pendingVisit(stops: JourneyStop[]): JourneyStop | null {
+  return pendingVisits(stops)[0] ?? null;
 }
 
 /**

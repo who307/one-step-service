@@ -4,7 +4,7 @@ import { useState } from "react";
 import { House } from "lucide-react";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { useFlow } from "@/features/flow/FlowProvider";
-import { heatAt, heatColor, pendingVisit, stopLabel, stopWeight } from "@/lib/journey";
+import { heatAt, heatColor, pendingVisits, stopLabel, stopWeight } from "@/lib/journey";
 
 // 홈의 나의 노선. 지나온 걸음(공고 읽기·연습·문의·다녀옴)이 역으로 쌓인다.
 // 메모리에만 있어서 새로고침하면 "집에서 출발"부터 다시 시작한다.
@@ -73,7 +73,8 @@ export function JourneyLine() {
   const [justAnswered, setJustAnswered] = useState<"visited" | "rested" | null>(null);
   const [litId, setLitId] = useState<number | null>(null);
 
-  const pending = pendingVisit(stops);
+  const waiting = pendingVisits(stops);
+  const pending = waiting[0] ?? null;
   const visitedCount = stops.filter((s) => s.type === "visited").length;
   const hidden = showAll ? 0 : Math.max(0, stops.length - SHOW_RECENT);
   const visible = stops.slice(hidden);
@@ -146,6 +147,12 @@ export function JourneyLine() {
                   이번엔 못 갔어요
                 </Button>
               </div>
+              {/* 나머지는 내 기록에서 한꺼번에 답한다. 여기서는 하나만 묻는다 */}
+              {waiting.length > 1 && (
+                <ButtonLink href="/records" variant="quiet" size="sm" className="mt-2 w-full">
+                  답하지 않은 공고 {waiting.length - 1}개 더 보기
+                </ButtonLink>
+              )}
             </div>
           ) : justAnswered === "rested" ? (
             <div key="after-rest" className="enter rounded-md bg-surface px-4 py-4">

@@ -92,7 +92,7 @@ interface FlowApi {
   reset: () => void;
   /** 나의 노선. 새 공고로 처음부터 시작해도 이어지고, 새로고침하면 지워진다. */
   stops: JourneyStop[];
-  /** 역 하나를 남긴다. 같은 공고·같은 종류(·같은 장면)의 역은 한 번만 남긴다(다녀옴·쉬어감은 매번). */
+  /** 역 하나를 남긴다. 같은 공고·같은 종류(·같은 장면)의 역은 한 번만 남긴다(다녀옴·쉬어감은 매번, 연습은 답한 뒤 다시). */
   addStop: (stop: Omit<JourneyStop, "id" | "at">) => void;
   /** 내 기록. 나의 노선처럼 새 공고로 시작해도 이어지고, 새로고침하면 지워진다. */
   records: PracticeRecord[];
@@ -111,7 +111,10 @@ export function FlowProvider({ children }: { children: ReactNode }) {
     (stop: Omit<JourneyStop, "id" | "at">) =>
       setStops((list) => {
         const repeatable = stop.type === "visited" || stop.type === "rested";
-        const dup = list.some((s) => s.type === stop.type && s.programKey === stop.programKey && s.sceneTitle === stop.sceneTitle);
+        // 쉬어감·다녀옴 답 뒤에 같은 공고를 다시 연습하면 새 역으로 남겨 다녀왔는지 다시 묻는다
+        const lastAnswer = list.findLastIndex((s) => s.programKey === stop.programKey && (s.type === "visited" || s.type === "rested"));
+        const since = stop.type === "practice" ? lastAnswer + 1 : 0;
+        const dup = list.slice(since).some((s) => s.type === stop.type && s.programKey === stop.programKey && s.sceneTitle === stop.sceneTitle);
         if (dup && !repeatable) return list;
         return [...list, { ...stop, id: (list.at(-1)?.id ?? 0) + 1, at: new Date() }];
       }),
