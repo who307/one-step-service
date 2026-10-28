@@ -1,113 +1,103 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import { ChevronRight, Trash2 } from "lucide-react";
-import { AppShell } from "@/components/layout/AppShell";
-import { BeforeAfterChart } from "@/components/records/BeforeAfterChart";
-import { ButtonLink, IconButton } from "@/components/ui/Button";
-import { journeyStore, recordStore } from "@/lib/storage";
-import type { PracticeRecord } from "@/lib/types";
+import { ChevronRight } from "lucide-react";
+import { AppShell, ScreenTitle } from "@/components/layout/AppShell";
+import { ButtonLink } from "@/components/ui/Button";
+import { Tag } from "@/components/ui/Chip";
+import { useFlow, type Mood, type PracticeRecord } from "@/features/flow/FlowProvider";
+import { levelInfo, sceneTitle } from "@/lib/labels";
 
-const fmtDate = new Intl.DateTimeFormat("ko-KR", { month: "long", day: "numeric" });
-const fmtDateTime = new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium", timeStyle: "short" });
+// 내 기록(아래 탭). 이번 이용 동안의 말 연습과 걸음을 모아 본다. 메모리에만 있고 새로고침하면 지워진다.
+// 점수 변화는 좋고 나쁨으로 해석하지 않고, 적은 숫자를 나란히 보여주기만 한다.
+
+const fmtTime = new Intl.DateTimeFormat("ko-KR", { month: "long", day: "numeric", hour: "numeric", minute: "2-digit" });
 
 export default function RecordsPage() {
-  const [records, setRecords] = useState<PracticeRecord[] | null>(null);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [visitedCount, setVisitedCount] = useState(0);
-  const [justPracticed, setJustPracticed] = useState(false);
-
-  useEffect(() => {
-    const list = recordStore.list();
-    setRecords(list);
-    setSelectedId(list[0]?.id ?? null);
-    setVisitedCount(journeyStore.list().filter((s) => s.type === "visited").length);
-    try {
-      if (sessionStorage.getItem("onestep.justPracticed")) {
-        setJustPracticed(true);
-        sessionStorage.removeItem("onestep.justPracticed");
-      }
-    } catch {}
-  }, []);
-
-  const remove = (id: string) => {
-    if (!confirm("이 기록을 지울까요? 지운 기록은 되돌릴 수 없어요.")) return;
-    recordStore.remove(id);
-    const list = recordStore.list();
-    setRecords(list);
-    setSelectedId(list[0]?.id ?? null);
-  };
-
-  const selected = records?.find((r) => r.id === selectedId) ?? null;
+  const { state, records, stops } = useFlow();
+  const visited = stops.filter((s) => s.type === "visited").length;
+  const list = [...records].reverse();
 
   return (
-    <AppShell title="내 기록">
-      {justPracticed && (
-        // 온기가 켜지는 순간: 연습 한 번을 끝까지 마쳤을 때
-        <div role="status" className="enter mb-4 rounded-md border-2 border-glow bg-glow-soft px-4 py-3">
-          <p className="font-bold">연습 한 번을 끝까지 마쳤어요</p>
-          <p className="text-[15px] text-ink-2">나의 노선에 역이 하나 생겼어요. 아래에서 연습 전후 마음을 비교해 보세요.</p>
-        </div>
+    <AppShell>
+      <ScreenTitle sub="이번에 연습한 것과 지나온 걸음이에요. 새로고침하면 지워져요.">내 기록</ScreenTitle>
+
+      <dl className="grid grid-cols-3 gap-2 text-center">
+        <Stat label="말 연습" value={`${records.length}번`} />
+        <Stat label="지나온 역" value={`${stops.length}개`} />
+        <Stat label="다녀온 곳" value={`${visited}곳`} />
+      </dl>
+
+      {state.timeline && (
+        <ButtonLink href="/journey" variant="secondary" className="mt-4 w-full justify-between">
+          <span className="min-w-0 truncate">준비 중: {state.timeline.program.title}</span>
+          <ChevronRight size={18} aria-hidden className="shrink-0" />
+        </ButtonLink>
       )}
-      <Link
-        href="/visited"
-        className="mb-4 flex min-h-14 items-center gap-3 rounded-md border-2 border-route bg-surface px-4 hover:bg-surface-2"
-      >
-        <span aria-hidden className="block size-5 shrink-0 rounded-full bg-glow" />
-        <span className="min-w-0 flex-1 font-semibold">다녀온 곳</span>
-        <span className="text-[15px] text-ink-2">{visitedCount}곳</span>
-        <ChevronRight size={18} aria-hidden className="text-ink-3" />
-      </Link>
 
-      {records !== null && records.length === 0 ? (
-        <div className="pt-16 text-center">
-          <h2 className="text-[20px] font-bold">아직 남긴 기록이 없어요</h2>
-          <p className="mt-2 text-ink-2">연습 전후에 마음을 기록하면 여기서 돌아볼 수 있어요.</p>
-          <ButtonLink href="/programs" variant="secondary" className="mt-6">
-            공고 둘러보기
-          </ButtonLink>
-        </div>
-      ) : (
-        <>
-          {selected && (
-            <section className="rounded-md bg-surface px-4 py-5">
-              <h2 className="text-[18px] font-bold">{selected.sceneTitle}</h2>
-              <p className="flex flex-wrap gap-x-3 text-[14px] text-ink-3">
-                <span>{selected.programTitle}</span>
-                <time dateTime={selected.createdAt}>{fmtDateTime.format(new Date(selected.createdAt))}</time>
-              </p>
-              <div className="mt-4">
-                <BeforeAfterChart before={selected.before} after={selected.after} />
-              </div>
-            </section>
-          )}
-
-          <h3 className="mt-8 text-[15px] font-semibold text-ink-2">모든 기록</h3>
-          <p className="text-[14px] text-ink-3">이 기기에만 저장되고, 지우면 되돌릴 수 없어요.</p>
-          <ul className="mt-2 divide-y divide-line">
-            {records?.map((r) => (
-              <li key={r.id} className="flex items-center gap-2">
-                <button
-                  type="button"
-                  aria-current={r.id === selectedId}
-                  onClick={() => setSelectedId(r.id)}
-                  className={`flex min-h-14 flex-1 flex-col items-start justify-center py-2 text-left ${r.id === selectedId ? "font-semibold" : ""}`}
-                >
-                  <span>{r.sceneTitle}</span>
-                  <span className="text-[13px] font-normal text-ink-3">
-                    <time dateTime={r.createdAt}>{fmtDate.format(new Date(r.createdAt))}</time>
-                    <span className="ml-3">{r.before && r.after ? "전후 모두" : r.before ? "연습 전만" : "연습 후만"}</span>
-                  </span>
-                </button>
-                <IconButton label={`${r.sceneTitle} 기록 지우기`} onClick={() => remove(r.id)} tone="muted">
-                  <Trash2 size={18} aria-hidden />
-                </IconButton>
-              </li>
+      <section aria-labelledby="practice-records" className="mt-8">
+        <h2 id="practice-records" className="text-[17px] font-bold">
+          연습 기록
+        </h2>
+        {list.length === 0 ? (
+          <div className="mt-3 rounded-md bg-surface px-4 py-6 text-center">
+            <p className="text-[15px] text-ink-2">아직 연습 기록이 없어요. 짧은 연습 한 번도 기록이 돼요.</p>
+            <ButtonLink href="/practice" className="mt-4 w-full">
+              말 연습 하러 가기
+            </ButtonLink>
+          </div>
+        ) : (
+          <ul className="mt-3 grid gap-3">
+            {list.map((r) => (
+              <RecordCard key={r.id} r={r} />
             ))}
           </ul>
-        </>
-      )}
+        )}
+      </section>
     </AppShell>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-md bg-surface px-2 py-3">
+      <dt className="text-[13px] text-ink-3">{label}</dt>
+      <dd className="mt-0.5 text-[20px] font-bold tabular-nums">{value}</dd>
+    </div>
+  );
+}
+
+function RecordCard({ r }: { r: PracticeRecord }) {
+  return (
+    <li className="rounded-md border border-line bg-surface p-4">
+      <div className="flex flex-wrap items-center gap-1.5">
+        <h3 className="mr-1 text-[16px] font-semibold">{sceneTitle(r.sceneId)}</h3>
+        <Tag>
+          {r.level} {levelInfo(r.level).title}
+        </Tag>
+        {r.endedEarly && <Tag>중간에 멈춤</Tag>}
+      </div>
+      <p className="mt-0.5 text-[13px] text-ink-3">
+        {r.programTitle ?? "공고 없이 일반 상황"} · <time dateTime={r.at.toISOString()}>{fmtTime.format(r.at)}</time>
+      </p>
+      {r.summary && <p className="mt-2 text-[15px] text-ink-2">{r.summary}</p>}
+      <dl className="mt-3 grid grid-cols-2 gap-2">
+        <Change label="불안도" k="anxiety" before={r.before} after={r.after} />
+        <Change label="참여 의향" k="intent" before={r.before} after={r.after} />
+      </dl>
+    </li>
+  );
+}
+
+function Change({ label, k, before, after }: { label: string; k: keyof Mood; before: Mood | null; after: Mood | null }) {
+  const b = before?.[k] ?? null;
+  const a = after?.[k] ?? null;
+  return (
+    <div className="rounded-sm bg-surface-2 px-3 py-2">
+      <dt className="text-[13px] text-ink-3">{label}</dt>
+      <dd className="text-[17px] font-semibold tabular-nums">
+        {b ?? "–"} <span className="text-ink-3">→</span> {a ?? "–"}
+        {b === null && a === null && <span className="ml-1 text-[13px] font-normal text-ink-3">기록 안 함</span>}
+      </dd>
+    </div>
   );
 }
