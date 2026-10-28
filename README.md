@@ -5,7 +5,7 @@
 ## 폴더 구조
 
 ```text
-hackatone-one-step-service/
+hackathon-one-step-service/
 ├── frontend/                      Next.js 15 (App Router) + React 19 + TypeScript + Tailwind v4
 │   └── src/                       자세한 구조는 frontend/README.md
 │       ├── app/                   화면: 홈(나의 노선), onboarding, programs, practice, records, visited
