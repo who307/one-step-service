@@ -1,37 +1,48 @@
-import type { CheckItem, Interest, ParticipationMode, Worry } from "@/lib/types";
+import type { Category, Level, Mode, Phase, SceneId } from "@/types/api";
 
-/** 지어낸 예시 공고에 "예시" 태그를 붙일지. 발표·시연에서는 켜 둔다. */
-export const SHOW_SAMPLE_TAG = true;
-
-export const INTEREST_LABEL: Record<Interest, string> = {
-  daily: "일상 회복",
-  cooking: "요리·살림",
-  work: "일경험",
-  art: "만들기·예술",
-  exercise: "걷기·운동",
-  talk: "대화·모임",
+export const CATEGORY_LABEL: Record<Category, string> = {
+  DAILY: "일상 회복",
+  COOKING: "요리·살림",
+  WORK: "일경험",
+  ART: "만들기·예술",
+  EXERCISE: "걷기·운동",
+  TALK: "대화·모임",
 };
 
-export const MODE_LABEL: Record<ParticipationMode, string> = {
-  offline: "직접 방문",
-  online: "온라인",
-  solo: "혼자 하기",
-  group: "여럿이 함께",
+export const MODE_LABEL: Record<Mode, string> = {
+  OFFLINE: "직접 방문",
+  ONLINE: "온라인",
+  GROUP: "여럿이 함께",
+  SOLO: "혼자 하기",
 };
 
-export const WORRY_LABEL: Record<Worry, string> = {
-  route: "가는 길",
-  firstWords: "첫마디",
-  crowd: "사람 많은 곳",
-  supplies: "준비물",
-  schedule: "당일 흐름",
-  askHelp: "도움 요청",
+export const PHASE_LABEL: Record<Phase, string> = {
+  ARRIVE: "도착",
+  CHECKIN: "접수",
+  ACTIVITY: "활동",
+  LEAVE: "귀가",
 };
 
-export const CHECK_ITEMS: CheckItem[] = [
-  { key: "anxiety", label: "불안", question: "지금 얼마나 불안하게 느껴지나요?", direction: "higherIsHeavier" },
-  { key: "lethargy", label: "무기력", question: "지금 얼마나 기운이 없게 느껴지나요?", direction: "higherIsHeavier" },
-  { key: "depression", label: "우울감", question: "지금 마음이 얼마나 가라앉아 있나요?", direction: "higherIsHeavier" },
-  { key: "isolation", label: "고립감", question: "지금 얼마나 혼자라고 느껴지나요?", direction: "higherIsHeavier" },
-  { key: "selfEsteem", label: "자존감", question: "지금 나 자신을 얼마나 괜찮게 느끼나요?", direction: "higherIsLighter" },
+export const CONCERN_OPTIONS = [
+  "처음 가는 장소라 긴장돼요",
+  "다른 사람과 대화하기가 어려워요",
+  "신청·접수 절차가 헷갈려요",
+  "활동을 잘 해낼 수 있을지 걱정돼요",
 ];
+export const MAX_CONCERNS = 3;
+
+export const SCENES: { id: SceneId; title: string; description: string }[] = [
+  { id: "CHECKIN", title: "접수할 때", description: "처음 인사하고 안내받기" },
+  { id: "GREETING", title: "활동할 때", description: "처음 만난 참여자와 인사하기" },
+  { id: "CLOSING", title: "마무리할 때", description: "소감 한마디 말하기" },
+  { id: "FIRST_INQUIRY", title: "신청 전 문의할 때", description: "담당자에게 궁금한 점 묻기" },
+];
+
+export const LEVELS: { id: Level; title: string; description: string; maxTurns: number }[] = [
+  { id: "L1", title: "지켜보기", description: "예시 대화를 보기만 해요", maxTurns: 6 },
+  { id: "L2", title: "짧게 답하기", description: "선택지나 짧은 말로 답해요", maxTurns: 5 },
+  { id: "L3", title: "자유 대화", description: "하고 싶은 말을 직접 입력해요", maxTurns: 8 },
+];
+
+export const sceneTitle = (id: SceneId) => SCENES.find((s) => s.id === id)?.title ?? "";
+export const levelInfo = (id: Level) => LEVELS.find((l) => l.id === id)!;

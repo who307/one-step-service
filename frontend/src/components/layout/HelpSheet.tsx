@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { LifeBuoy, Phone, X } from "lucide-react";
 import { IconButton } from "@/components/ui/Button";
 
-const LINES = [
+export const HELP_LINES = [
   { name: "자살예방 상담전화", hours: "24시간", number: "109", tel: "109" },
   { name: "정신건강 위기상담", hours: "24시간", number: "1577-0199", tel: "15770199" },
 ];
@@ -47,7 +47,7 @@ export function HelpSheet() {
           </div>
           <p className="mt-1 text-ink-2">연습은 언제든 멈춰도 괜찮아요. 이야기를 들어줄 사람이 필요하면 바로 전화할 수 있어요.</p>
           <ul className="mt-5 divide-y divide-line border-y border-line">
-            {LINES.map((l) => (
+            {HELP_LINES.map((l) => (
               <li key={l.tel}>
                 <a href={`tel:${l.tel}`} className="flex min-h-16 items-center gap-3 py-2 hover:bg-surface-2">
                   <span className="grid size-10 shrink-0 place-items-center rounded-full bg-route-soft text-ink">
