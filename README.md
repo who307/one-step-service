@@ -1,53 +1,49 @@
-# 한걸음 (one_step_service)
+# 한걸음 (one-step-service)
 
-팀 ON:KEY(온기). 고립·은둔 청년이 지원 프로그램에 처음 참석하기 전에, 공식 정보를 확인하고 AI 상대역과 첫마디를 미리 연습하도록 돕는 서비스입니다.
+팀 ON:KEY(온기). 사회적 고립이나 대인관계에 어려움을 느끼는 청년이 지원 프로그램 공고를 확인하고, 참여하는 날을 미리 걸어보고, AI 연습 상대와 첫마디를 연습하도록 돕는 모바일 우선 웹서비스입니다.
 
-## 폴더 구조
+**사용자 데이터는 수집·저장하지 않습니다.** 로그인이 없고, 걱정·대화·마음 점수·체크 상태는 브라우저 메모리에만 있다가 새로고침하면 사라집니다. 서버는 무상태입니다.
 
-```text
-hackatone-one-step-service/
-├── frontend/                      Next.js 15 (App Router) + React 19 + TypeScript + Tailwind v4
-│   └── src/                       자세한 구조는 frontend/README.md
-│       ├── app/                   화면: 홈(나의 노선), onboarding, programs, practice, records, visited
-│       ├── components/            journey(노선), program, practice, checkin, records, layout, ui
-│       ├── lib/                   api(백엔드 전환 지점), practice/session(AI 연동 지점), storage(기기 저장), journey
-│       └── mocks/                 예시 공고·장면·추천 규칙 (예시 데이터 모드)
-│
-├── backend/                       Spring Boot 4 + Java 21 + JPA + MySQL
-│   └── src/main/java/com/onkey/onestep/
-│       ├── global/
-│       │   ├── config/            AppProperties, WebConfig(CORS), WebSocketConfig, DataSeeder
-│       │   ├── response/          ApiResponse<T>
-│       │   └── exception/         GlobalExceptionHandler, NotFoundException
-│       ├── program/               ① 공고
-│       │   ├── domain/            Program, ProgramFact(확인됨/확인 필요), Location
-│       │   ├── client/            YouthCenterClient(포트) + MockYouthCenterClient  ← 온통청년 API 연동 지점
-│       │   ├── service/           ProgramService, ProgramSyncService(동기화 TODO)
-│       │   ├── controller/        GET /api/programs, /api/programs/{id}
-│       │   └── repository/ dto/
-│       ├── recommendation/        ③-1 POST /api/recommendations
-│       └── practice/              ② 연습
-│           ├── domain/            Scene(장면 + AI 지시문)
-│           ├── gateway/           AvatarGateway(포트) + MockAvatarGateway + PracticeWebSocketHandler(/ws/practice)  ← Gemini Live 연동 지점
-│           └── controller/        GET /api/scenes
-│
-├── docker-compose.yml             로컬 MySQL 8.4
-└── docs/ARCHITECTURE.md           설계 원칙과 연동 계획
-```
+## 흐름
 
-## 실행
+`S0 시작 → 공고 목록·상세(또는 S1 공고문 붙여넣기) → S2 걱정 → S3 참여 타임라인 → S4 연습 전 마음 → S5 장면·난이도 → S6 AI 롤플레이 → S7 연습 후 마음 → S8 결과 → 나의 노선`
+예외 E1~E6과 위기 안내(S-C)는 [docs/SCREEN_SPEC.md](docs/SCREEN_SPEC.md).
+
+## 실행 (로컬 시연)
 
 ```bash
-# 1) 프론트만 (mock 데이터로 전체 흐름 확인 가능)
+# 1) 프론트만 — 백엔드 없이 예시(Mock) 데이터로 전체 흐름이 동작
 cd frontend
 npm install
+cp .env.example .env.local
 npm run dev            # http://localhost:3000
-
-# 2) 백엔드까지 연결
-docker compose up -d   # MySQL (Docker 필요)
-cd backend
-./gradlew bootRun      # http://localhost:8080 — 첫 기동 때 따뜻한 집 공고와 장면 4개가 들어감
-# frontend/.env.local 에서 NEXT_PUBLIC_USE_MOCK=false 로 바꾸면 백엔드 데이터를 씀
 ```
 
-외부 API 키는 `backend/.env.example`을 참고해 환경변수로만 넣습니다. 저장소에 커밋하지 않습니다.
+```bash
+# 2) 백엔드까지 — Java 21, DB 필요 없음
+cd backend
+./gradlew bootRun      # http://localhost:8080/api/v1  (Windows: gradlew.bat bootRun)
+# frontend/.env.local 에서 NEXT_PUBLIC_USE_MOCK=false 로 바꾸고 프론트를 다시 켠다
+```
+
+키는 `backend/.env.example`을 `backend/.env`로 복사해 넣습니다. `bootRun`이 이 파일을 읽고, `.env`는 커밋하지 않습니다. 키는 브라우저로 보내지 않습니다.
+
+- 실제 공고(온통청년): `YOUTHCENTER_ENABLED=true`, `YOUTHCENTER_API_KEY=...`
+- 실제 AI: `GEMINI_ENABLED=true`, `GEMINI_API_KEY=...`. 키가 없으면 Mock 연습 상대가 동작하고 화면에 "예시 응답"으로 표시됩니다.
+- 8080을 다른 앱이 쓰고 있으면 `.env`에 `SERVER_PORT=8081`을 넣고, `frontend/.env.local`의 `NEXT_PUBLIC_API_BASE`도 같은 포트로 맞춥니다.
+
+## 구조
+
+```text
+frontend/   Next.js 15 · React 19 · Tailwind v4     자세히: frontend/README.md
+backend/    Spring Boot 4 · Java 21 (com.onkey.onestep: program, timeline, simulation, inquiry, integration, common)
+docs/       ARCHITECTURE · API · SCREEN_SPEC · AI_SPEC · DESIGN · TEST_CASES
+.claude/skills/   디자인 참고 스킬
+```
+
+## 테스트
+
+```bash
+cd backend && ./gradlew test        # 38개: 위기 신호, 공고 판별, 원문 인용 검증, API 계약
+cd frontend && npm run lint && npx tsc --noEmit
+```
