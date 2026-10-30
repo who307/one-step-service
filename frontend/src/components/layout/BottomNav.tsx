@@ -24,7 +24,7 @@ type TabHref = (typeof items)[number]["href"];
  */
 export function tabOf(path: string): TabHref {
   const under = (...prefixes: string[]) => prefixes.some((p) => path === p || path.startsWith(`${p}/`));
-  if (under("/programs", "/notice", "/concerns", "/timeline", "/inquiry")) return "/programs";
+  if (under("/programs", "/concerns", "/timeline", "/inquiry")) return "/programs";
   if (under("/practice", "/check")) return "/practice";
   if (under("/result", "/records", "/journey")) return "/records";
   return "/";

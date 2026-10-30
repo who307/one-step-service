@@ -31,7 +31,7 @@ export default function ConcernsPage() {
 
   return (
     <AppShell
-      back={state.program ? `/programs/${state.program.id}` : "/notice"}
+      back={state.program ? `/programs/${state.program.id}` : "/programs"}
       step={1}
       footer={
         <div className="grid grid-cols-[auto_1fr] gap-2">
