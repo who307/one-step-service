@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ChevronDown, ExternalLink, MessageSquareText } from "lucide-react";
+import { ChevronDown, ExternalLink } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Tag } from "@/components/ui/Chip";
@@ -136,10 +136,6 @@ export default function ProgramDetailPage() {
       )}
 
       <div className="mt-5 grid gap-2">
-        <Button variant="secondary" onClick={() => choose("/inquiry")}>
-          <MessageSquareText size={18} aria-hidden />
-          물어볼 문장 만들기
-        </Button>
         {program.applicationUrl && (
           <ButtonLink href={program.applicationUrl} external variant="secondary">
             <ExternalLink size={18} aria-hidden />
