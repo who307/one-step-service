@@ -17,14 +17,14 @@ type TabHref = (typeof items)[number]["href"];
 
 /**
  * 화면 → 탭.
- * 공고: 공고 고르기·공고문 붙여넣기·걱정·타임라인·문의 문장
+ * 공고: 공고 고르기·걱정·문의 문장
  * 말 연습: 연습 전 마음·연습 설정·연습·연습 후 마음
  * 내 기록: 결과·내 기록·나의 노선(실제 참여 체크)
  * 그 밖(시작·이용 안내·도움)은 오늘
  */
 export function tabOf(path: string): TabHref {
   const under = (...prefixes: string[]) => prefixes.some((p) => path === p || path.startsWith(`${p}/`));
-  if (under("/programs", "/concerns", "/timeline", "/inquiry")) return "/programs";
+  if (under("/programs", "/concerns","/inquiry")) return "/programs";
   if (under("/practice", "/check")) return "/practice";
   if (under("/result", "/records", "/journey")) return "/records";
   return "/";

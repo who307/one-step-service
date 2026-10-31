@@ -22,7 +22,7 @@ export default function PracticeSetupPage() {
   return (
     <AppShell
       back={general ? "/" : "/check/before"}
-      step={general ? undefined : 4}
+      step={general ? undefined : 3}
 
       footer={
         <Button

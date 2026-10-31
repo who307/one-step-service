@@ -42,7 +42,7 @@ function Session({
   general: boolean;
   concerns: string[];
 }) {
-  const step = general ? undefined : 5;
+  const step = general ? undefined : 4;
   const router = useRouter();
   const { state, update, addStop } = useFlow();
   const [sim, setSim] = useState<SimulationStart | null>(null);

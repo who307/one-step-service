@@ -6,27 +6,26 @@ import { AppShell, ScreenTitle } from "@/components/layout/AppShell";
 import { ButtonLink } from "@/components/ui/Button";
 import { MockNote } from "@/components/ui/States";
 import { useFlow, useRequire, type Mood } from "@/features/flow/FlowProvider";
-import { Checklist } from "@/features/timeline/Checklist";
 
 // S8 결과. 점수 변화는 성공·실패나 효과로 해석하지 않고, 적은 숫자를 나란히 보여주기만 한다.
 export default function ResultPage() {
   const { state } = useFlow();
   const ready = useRequire(state.practice !== null, "/practice");
   if (!ready) return null;
-  const { practice, timeline, before, after } = state;
+  const { practice, program, before, after } = state;
   const result = practice!.result;
 
   return (
     <AppShell
       back="/check/after"
-      step={timeline ? 7 : undefined}
+      step={program ? 6 : undefined}
       footer={
         <div className="grid grid-cols-2 gap-2">
           <ButtonLink href="/practice" variant="secondary">
             다시 연습하기
           </ButtonLink>
           {/* 공고 흐름이면 실제 참여 체크(나의 노선)로, 공고 없이 한 연습이면 내 기록으로 */}
-          <ButtonLink href={timeline ? "/journey" : "/records"}>마무리하기</ButtonLink>
+          <ButtonLink href={program ? "/journey" : "/records"}>마무리하기</ButtonLink>
         </div>
       }
     >
@@ -54,17 +53,6 @@ export default function ResultPage() {
             ))}
           </ul>
         </section>
-      )}
-
-      {timeline && (
-      <section aria-labelledby="checklist" className="mt-8">
-        <h2 id="checklist" className="text-[17px] font-bold">
-          준비물 체크리스트
-        </h2>
-        <div className="mt-2">
-          <Checklist items={timeline.checklist} showLabel={false} />
-        </div>
-      </section>
       )}
 
       {state.usedMock && (
