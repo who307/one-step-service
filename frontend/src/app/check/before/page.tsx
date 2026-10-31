@@ -10,7 +10,7 @@ import { useFlow, useRequire } from "@/features/flow/FlowProvider";
 export default function BeforeCheckPage() {
   const router = useRouter();
   const { state, update } = useFlow();
-  const general = state.timeline === null;
+  const general = state.program === null;
   const ready = useRequire(!general || state.sceneId !== null, "/practice");
   if (!ready) return null;
   const next = general ? "/practice/session" : "/practice";

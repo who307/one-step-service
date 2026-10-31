@@ -18,7 +18,7 @@ export default function AfterCheckPage() {
     addRecord({
       sceneId: practice.sceneId,
       level: practice.level,
-      programTitle: state.timeline?.program.title ?? null,
+      programTitle: state.program?.title ?? null,
       before: state.before,
       after,
       summary: practice.result?.summary ?? null,
@@ -28,7 +28,7 @@ export default function AfterCheckPage() {
   };
 
   return (
-    <AppShell back="/practice" step={state.timeline ? 6 : undefined}>
+    <AppShell back="/practice" step={state.program ? 6 : undefined}>
       <ScreenTitle sub="연습 전과 같은 질문이에요. 건너뛰어도 괜찮아요.">연습하고 나니, 지금은 어떤가요?</ScreenTitle>
       <MoodCheck initial={null} onSubmit={done} onSkip={() => done(null)} />
     </AppShell>

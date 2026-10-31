@@ -16,7 +16,7 @@ import type { Level, SceneId } from "@/types/api";
 export default function PracticeSetupPage() {
   const router = useRouter();
   const { state, update } = useFlow();
-  const general = state.timeline === null;
+  const general = state.program === null;
   const [scene, setScene] = useState<SceneId>(state.sceneId ?? "CHECKIN");
   const [level, setLevel] = useState<Level>(state.level ?? "L2");
   return (
@@ -36,7 +36,7 @@ export default function PracticeSetupPage() {
         </Button>
       }
     >
-      <ScreenTitle sub={general ? "공고를 고르지 않아도 돼요. 일반적인 청년 프로그램 상황으로 연습해요." : `${state.timeline!.program.title} 상황으로 연습해요. 언제든 멈출 수 있어요.`}>
+      <ScreenTitle sub={general ? "공고를 고르지 않아도 돼요. 일반적인 청년 프로그램 상황으로 연습해요." : `${state.program!.title} 상황으로 연습해요. 언제든 멈출 수 있어요.`}>
         어떤 장면을 연습할까요?
       </ScreenTitle>
       {general && (

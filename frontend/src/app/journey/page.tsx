@@ -16,11 +16,11 @@ const MISSIONS = ["준비물 챙기기", "집에서 출발하기", "도착해서
 export default function JourneyPage() {
   const router = useRouter();
   const { state, toggleCheck, reset, addStop, stops } = useFlow();
-  const ready = useRequire(state.timeline !== null);
+  const ready = useRequire(state.program !== null);
   const [confirm, setConfirm] = useState(false);
   if (!ready) return null;
 
-  const t = state.timeline!;
+  const t = state.program!;
   const prepared = [
     { label: "공고 확인", done: true },
     { label: "참여 타임라인 보기", done: true },
@@ -32,7 +32,7 @@ export default function JourneyPage() {
 
   return (
     <AppShell back="/result">
-      <ScreenTitle sub={t.program.title}>나의 노선</ScreenTitle>
+      <ScreenTitle sub={t.title}>나의 노선</ScreenTitle>
 
       <section aria-labelledby="prep">
         <h2 id="prep" className="text-[17px] font-bold">
@@ -93,9 +93,9 @@ export default function JourneyPage() {
                       toggleCheck(key);
                       // 마지막 하나까지 체크하면 홈 노선에 "다녀왔어요" 역을 남긴다(한 공고에 한 번)
                       const willBeDone = !on && doneCount === MISSIONS.length - 1;
-                      const key0 = state.program?.id ?? t.program.title;
+                      const key0 = state.program?.id ?? t.title;
                       if (willBeDone && !stops.some((s) => s.type === "visited" && s.programKey === key0))
-                        addStop({ type: "visited", programKey: key0, programTitle: t.program.title });
+                        addStop({ type: "visited", programKey: key0, programTitle: t.title });
                     }} className="peer sr-only" />
                   <span
                     aria-hidden
