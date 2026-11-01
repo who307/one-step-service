@@ -23,7 +23,6 @@ export default function JourneyPage() {
   const t = state.program!;
   const prepared = [
     { label: "공고 확인", done: true },
-    { label: "참여 타임라인 보기", done: true },
     { label: state.practiceCount > 0 ? `말 연습 ${state.practiceCount}번` : "말 연습", done: state.practiceCount > 0 },
   ];
   const doneCount = MISSIONS.filter((m) => state.checked[`mission:${m}`]).length;
@@ -145,7 +144,7 @@ export default function JourneyPage() {
         </div>
       </section>
 
-      <p className="mt-8 text-[13px] text-ink-3">이 노선은 저장되지 않아요. 새로고침하거나 창을 닫으면 지워져요.</p>
+      <p className="mt-8 text-[13px] text-ink-3">이 노선은 이 브라우저에만 남아요. 서버로 보내지 않고, 새로고침해도 이어져요.</p>
 
       <ConfirmDialog
         open={confirm}
