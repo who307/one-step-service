@@ -5,12 +5,13 @@ import { ChevronDown } from "lucide-react";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Tag } from "@/components/ui/Chip";
 import { useFlow } from "@/features/flow/FlowProvider";
-import { ProgramProgressBar, useResume } from "@/features/journey/ProgramProgressBar";
+import { ProgramProgressBar, useOpenJourney, useResume } from "@/features/journey/ProgramProgressBar";
 import { PROGRESS_GROUPS, pendingVisits, programProgress, type ProgramProgress } from "@/lib/journey";
 import { fmtDay, sameDay } from "./format";
 
 // 내 기록 › 공고. 진행 중은 최근에 한 순서로, 맨 위 하나만 크게. 완료는 달별로 접어 둔다.
 // 연습까지 한 공고는 카드 안에서 다녀왔는지 묻는다(홈은 한 번에 하나만 묻는다).
+// 참여 체크(/journey)는 흐름에서 빠져 여기서만 연다: 마무리 단계 공고는 이어서 하기 대신, 완료한 공고는 줄 끝에.
 
 const SHOW_ONGOING = 3;
 const fmtMonth = new Intl.DateTimeFormat("ko-KR", { year: "numeric", month: "long" });
@@ -21,6 +22,7 @@ type Answer = "visited" | "rested";
 export function ProgramTab() {
   const { stops, snapshots, addStop } = useFlow();
   const resume = useResume();
+  const openJourney = useOpenJourney();
   const [showAll, setShowAll] = useState(false);
 
   const all = programProgress(stops, snapshots);
@@ -62,12 +64,16 @@ export function ProgramTab() {
                   </div>
                   {i === 0 ? (
                     // 아래에서 다녀왔는지 묻는 중이면 그 답이 이 카드의 주요 행동이다
-                    <Button size="sm" variant={asking.has(p.programKey) ? "secondary" : "primary"} onClick={() => resume(p)}>
-                      이어서 하기
+                    <Button
+                      size="sm"
+                      variant={asking.has(p.programKey) ? "secondary" : "primary"}
+                      onClick={() => (p.step === 3 ? openJourney(p) : resume(p))}
+                    >
+                      {p.step === 3 ? "참여 체크" : "이어서 하기"}
                     </Button>
                   ) : (
-                    <Button size="sm" variant="quiet" className="underline" onClick={() => resume(p)}>
-                      이어서
+                    <Button size="sm" variant="quiet" className="underline" onClick={() => (p.step === 3 ? openJourney(p) : resume(p))}>
+                      {p.step === 3 ? "참여 체크" : "이어서"}
                     </Button>
                   )}
                 </div>
@@ -120,6 +126,9 @@ export function ProgramTab() {
                   {list.map((p) => (
                     <li key={p.programKey} className="flex min-h-13 flex-wrap items-center gap-x-2 gap-y-1 py-2">
                       <span className="min-w-0 flex-1 text-[16px]">{p.programTitle}</span>
+                      <Button size="sm" variant="quiet" className="order-last underline" onClick={() => openJourney(p)}>
+                        참여 체크
+                      </Button>
                       {p.answer === "visited" ? (
                         <Tag tone="sure">다녀왔어요</Tag>
                       ) : (

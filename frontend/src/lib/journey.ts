@@ -70,7 +70,8 @@ export interface ProgramProgress {
 }
 
 /** 이어서 하기로 갈 화면. 공고 흐름의 기존 화면을 그대로 쓴다. */
-export const RESUME_HREF: Record<ProgramProgress["step"], string> = { 1: "/concerns", 2: "/check/before", 3: "/journey" };
+// 마무리(다녀왔는지 답하기·참여 체크)는 흐름 밖, 내 기록에서 한다
+export const RESUME_HREF: Record<ProgramProgress["step"], string> = { 1: "/concerns", 2: "/check/before", 3: "/records" };
 
 /**
  * 준비한 공고마다 어디까지 했는지. 역(공고 읽기·연습·답)과 이어 하기용 상태로 정한다.

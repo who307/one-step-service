@@ -24,8 +24,8 @@ export default function ResultPage() {
           <ButtonLink href="/practice" variant="secondary">
             다시 연습하기
           </ButtonLink>
-          {/* 공고 흐름이면 실제 참여 체크(나의 노선)로, 공고 없이 한 연습이면 내 기록으로 */}
-          <ButtonLink href={program ? "/journey" : "/records"}>마무리하기</ButtonLink>
+          {/* 흐름은 결과에서 끝난다. 다녀왔는지와 실제 참여 체크는 내 기록에서 한다 */}
+          <ButtonLink href="/records">마무리하기</ButtonLink>
         </div>
       }
     >

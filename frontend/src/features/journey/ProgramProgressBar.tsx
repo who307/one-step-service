@@ -35,3 +35,12 @@ export function useResume() {
   const { resume } = useFlow();
   return (p: ProgramProgress) => router.push(resume(p.programKey) ? RESUME_HREF[p.step] : "/programs");
 }
+
+/** 참여 체크(/journey): 흐름에서는 빠졌고 내 기록에서만 연다. 그 공고를 지금 공고로 되살린 뒤 간다. */
+export function useOpenJourney() {
+  const router = useRouter();
+  const { resume } = useFlow();
+  return (p: ProgramProgress) => {
+    if (resume(p.programKey)) router.push("/journey");
+  };
+}
