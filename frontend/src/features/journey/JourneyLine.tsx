@@ -7,7 +7,7 @@ import { useFlow } from "@/features/flow/FlowProvider";
 import { heatAt, heatColor, pendingVisits, stopLabel, stopWeight } from "@/lib/journey";
 
 // 홈의 나의 노선. 지나온 걸음(공고 읽기·연습·문의·다녀옴)이 역으로 쌓인다.
-// 메모리에만 있어서 새로고침하면 "집에서 출발"부터 다시 시작한다.
+// 다녀왔는지는 노선의 다음 역에서 한 번에 한 공고만 묻고, 나머지는 내 기록에서 답한다.
 
 const SHOW_RECENT = 5;
 const fmtDay = new Intl.DateTimeFormat("ko-KR", { month: "long", day: "numeric" });
