@@ -8,10 +8,11 @@ import { Button } from "@/components/ui/Button";
 import { useFlow, useRequire } from "@/features/flow/FlowProvider";
 import { CONCERN_OPTIONS, MAX_CONCERNS } from "@/lib/labels";
 
-// S2 걱정 선택. 최대 3개, 건너뛰어도 된다. 고른 걱정은 타임라인의 준비 팁에만 쓰고 저장하지 않는다.
+// S2 걱정 선택. 최대 3개, 건너뛰어도 된다. 고른 걱정은 상황 연습에 쓴다.
+// 마치면 공고를 읽은 걸음을 노선에 남기고 연습 전 마음 체크로 간다.
 export default function ConcernsPage() {
   const router = useRouter();
-  const { state, update } = useFlow();
+  const { state, update, addStop } = useFlow();
   const ready = useRequire(state.noticeText !== "");
   const custom0 = state.concerns.find((c) => !CONCERN_OPTIONS.includes(c)) ?? "";
   const [picked, setPicked] = useState<string[]>(state.concerns.filter((c) => CONCERN_OPTIONS.includes(c)));
@@ -25,13 +26,14 @@ export default function ConcernsPage() {
   const toggle = (c: string) => setPicked((p) => (p.includes(c) ? p.filter((x) => x !== c) : full ? p : [...p, c]));
 
   const go = (concerns: string[]) => {
-    update({ concerns, timeline: null });
-    router.push("/timeline");
+    update({ concerns });
+    if (state.program) addStop({ type: "read", programKey: state.program.id, programTitle: state.program.title });
+    router.push("/check/before");
   };
 
   return (
     <AppShell
-      back={state.program ? `/programs/${state.program.id}` : "/notice"}
+      back={state.program ? `/programs/${state.program.id}` : "/programs"}
       step={1}
       footer={
         <div className="grid grid-cols-[auto_1fr] gap-2">

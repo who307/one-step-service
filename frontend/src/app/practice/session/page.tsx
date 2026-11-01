@@ -21,7 +21,7 @@ export default function SessionPage() {
   // 공고를 고르지 않고 "말 연습" 탭에서 바로 온 경우에도 일반적인 청년 프로그램 상황으로 연습한다
   const ready = useRequire(state.sceneId !== null && state.level !== null, "/practice");
   if (!ready) return null;
-  return <Session sceneId={state.sceneId!} level={state.level!} programTitle={state.timeline?.program.title ?? GENERAL_TITLE} general={state.timeline === null} concerns={state.concerns} />;
+  return <Session sceneId={state.sceneId!} level={state.level!} programTitle={state.program?.title ?? GENERAL_TITLE} general={state.program === null} concerns={state.concerns} />;
 }
 
 const GENERAL_TITLE = "청년 프로그램";
@@ -42,7 +42,7 @@ function Session({
   general: boolean;
   concerns: string[];
 }) {
-  const step = general ? undefined : 5;
+  const step = general ? undefined : 4;
   const router = useRouter();
   const { state, update, addStop } = useFlow();
   const [sim, setSim] = useState<SimulationStart | null>(null);
