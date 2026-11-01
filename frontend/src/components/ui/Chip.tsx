@@ -7,10 +7,13 @@ export function ToggleChip({
   label,
   selected,
   onToggle,
+  count,
 }: {
   label: string;
   selected: boolean;
   onToggle: () => void;
+  /** 고르면 맞는 공고 수 등. 0이면 흐리게 보이지만 고를 수는 있다 */
+  count?: number;
 }) {
   return (
     <button
@@ -23,6 +26,12 @@ export function ToggleChip({
     >
       {selected && <Check size={16} aria-hidden strokeWidth={2.6} />}
       {label}
+      {count !== undefined && (
+        <span className={`tabular-nums text-[13px] ${selected ? "text-surface-2" : count === 0 ? "text-ink-3/60" : "text-ink-3"}`}>
+          {count}
+          <span className="sr-only">개</span>
+        </span>
+      )}
     </button>
   );
 }

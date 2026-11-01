@@ -1,4 +1,4 @@
-import type { ProgramDetail, ProgramList, RecommendationList, RecommendationRequest } from "@/types/api";
+import type { Category, Mode, ProgramDetail, ProgramList, ProgramSort, RecommendationList, RecommendationRequest } from "@/types/api";
 import { CATEGORY_LABEL, MODE_LABEL } from "@/lib/labels";
 import raw from "./programs.json";
 
@@ -31,30 +31,59 @@ const UNKNOWN_FIELDS: [keyof RawProgram, string][] = [
   ["contact", "문의처"],
 ];
 
+const SPACES = /\s+/g;
+const normalize = (t: string) => t.toLowerCase().replace(SPACES, "");
+const tokens = (q?: string) => (q?.trim() ? q.trim().split(SPACES).map(normalize).filter(Boolean) : []);
+const searchKey = (p: RawProgram) => normalize([p.title, p.organization, p.summary, p.location ?? "", p.eligibility ?? ""].join("\u0000"));
+
 function matches(p: RawProgram, req: RecommendationRequest) {
   if (req.category && p.category !== req.category) return false;
   if (req.mode && !p.modes.includes(req.mode)) return false;
-  if (req.openOnly && p.closed) return false;
-  const q = req.q?.trim().toLowerCase();
-  if (q && ![p.title, p.organization, p.summary, p.location ?? ""].some((s) => s.toLowerCase().includes(q))) return false;
-  return true;
+  const key = searchKey(p);
+  return tokens(req.q).every((t) => key.includes(t));
 }
 
 export function mockListPrograms(req: RecommendationRequest): ProgramList {
   return { source: "MOCK", items: programs.filter((p) => matches(p, req)).map(summaryOf) };
 }
 
+// 백엔드 ProgramService.recommend 와 같은 규칙(둘을 같이 고친다)
+const byDate = (a: string | null, b: string | null, dir: 1 | -1) => (a === b ? 0 : a === null ? 1 : b === null ? -1 : a < b ? -dir : dir);
+const SORTS: Record<ProgramSort, (a: RawProgram, b: RawProgram) => number> = {
+  RECOMMENDED: () => 0,
+  DEADLINE: (a, b) => byDate(a.applicationEnd, b.applicationEnd, 1),
+  LATEST: (a, b) => byDate(a.applicationStart, b.applicationStart, -1),
+};
+
 export function mockRecommend(req: RecommendationRequest): RecommendationList {
-  const items = programs
-    .filter((p) => matches(p, req))
-    .map((p) => {
-      const reasons: string[] = [];
-      if (req.category) reasons.push(`고른 활동 종류(${CATEGORY_LABEL[req.category]})예요`);
-      if (req.mode) reasons.push(`${MODE_LABEL[req.mode]}로 참여하는 활동이에요`);
-      if (req.q?.trim()) reasons.push(`‘${req.q.trim()}’ 검색어와 맞아요`);
-      return { program: summaryOf(p), reasons };
-    });
-  return { source: "MOCK", items };
+  const categories = new Set([...(req.categories ?? []), ...(req.category ? [req.category] : [])]);
+  const modes = new Set([...(req.modes ?? []), ...(req.mode ? [req.mode] : [])]);
+  const words = tokens(req.q);
+  const base = programs.filter((p) => !(req.openOnly && p.closed) && words.every((t) => searchKey(p).includes(t)));
+
+  const categoryCounts = Object.fromEntries(Object.keys(CATEGORY_LABEL).map((c) => [c, 0])) as Record<Category, number>;
+  const modeCounts = Object.fromEntries(Object.keys(MODE_LABEL).map((m) => [m, 0])) as Record<Mode, number>;
+  const matched: RawProgram[] = [];
+  for (const p of base) {
+    const categoryOk = categories.size === 0 || categories.has(p.category);
+    const modeOk = modes.size === 0 || p.modes.some((m) => modes.has(m));
+    if (modeOk) categoryCounts[p.category]++;
+    if (categoryOk) p.modes.forEach((m) => modeCounts[m]++);
+    if (categoryOk && modeOk) matched.push(p);
+  }
+
+  const sort = SORTS[req.sort ?? "RECOMMENDED"];
+  matched.sort((a, b) => Number(a.closed) - Number(b.closed) || sort(a, b));
+  const from = Math.min(req.offset ?? 0, matched.length);
+  const to = req.limit == null ? matched.length : Math.min(from + req.limit, matched.length);
+  const items = matched.slice(from, to).map((p) => {
+    const reasons: string[] = [];
+    if (categories.has(p.category)) reasons.push(`고른 활동 종류(${CATEGORY_LABEL[p.category]})예요`);
+    for (const m of p.modes) if (modes.has(m)) reasons.push(`${MODE_LABEL[m]}로 참여하는 활동이에요`);
+    if (words.length) reasons.push("검색어와 관련된 내용이 있어요");
+    return { program: summaryOf(p), reasons };
+  });
+  return { source: "MOCK", items, total: matched.length, categoryCounts, modeCounts };
 }
 
 export function mockGetProgram(id: string): ProgramDetail | null {

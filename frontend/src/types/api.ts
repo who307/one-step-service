@@ -56,17 +56,34 @@ export interface ProgramList {
   items: ProgramSummary[];
 }
 
+export type ProgramSort = "RECOMMENDED" | "DEADLINE" | "LATEST";
+
 export interface RecommendationRequest {
+  /** 예전 단일 선택. categories에 더해진다 */
   category?: Category;
+  /** 예전 단일 선택. modes에 더해진다 */
   mode?: Mode;
+  /** 같은 묶음 안은 하나만 맞아도 되고(OR), 묶음끼리는 모두 맞아야 한다(AND) */
+  categories?: Category[];
+  modes?: Mode[];
+  /** 띄어 쓴 단어가 모두 들어 있어야 한다. 공백은 무시하고 비교한다 */
   q?: string;
   /** true면 신청이 끝난 공고를 뺀다 */
   openOnly?: boolean;
+  sort?: ProgramSort;
+  offset?: number;
+  /** 비우면 전체 */
+  limit?: number;
 }
 
 export interface RecommendationList {
   source: Source;
   items: { program: ProgramSummary; reasons: string[] }[];
+  /** 조건에 맞는 전체 수(items는 그중 offset~limit) */
+  total: number;
+  /** 칩 옆 숫자: 그 묶음의 선택만 빼고 나머지 조건을 적용했을 때 그 칩에 맞는 공고 수 */
+  categoryCounts: Record<Category, number>;
+  modeCounts: Record<Mode, number>;
 }
 
 export interface TimelineRequest {
