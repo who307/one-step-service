@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Mic, MicOff, RotateCcw, SendHorizontal, Volume2, VolumeX } from "lucide-react";
+import { ArrowLeft, Captions, Check, Keyboard, MessageCircle, Mic, MicOff, PhoneOff, RotateCcw, SendHorizontal, Volume2, VolumeX, X } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button, IconButton } from "@/components/ui/Button";
 import { ConfirmDialog, ErrorPanel, Loading, MockNote } from "@/components/ui/States";
@@ -10,6 +10,7 @@ import { GENERAL_PRACTICE, useFlow, useRequire } from "@/features/flow/FlowProvi
 import { Avatar, StateLabel, type AvatarState } from "@/features/simulation/Avatar";
 import { SimulationProgress } from "@/features/simulation/SimulationProgress";
 import { useSpeechInput, useSpeechOutput } from "@/features/simulation/useSpeech";
+import { useVideoAvatar } from "@/features/simulation/useVideoAvatar";
 import { api, isAbort, USE_MOCK } from "@/lib/api";
 import { levelInfo, sceneTitle } from "@/lib/labels";
 import { hasCrisisSignal, MESSAGE_MAX } from "@/lib/safety";
@@ -18,10 +19,12 @@ import type { ChatLine, Level, SceneId, SimulationStart } from "@/types/api";
 // S6 AI 롤플레이. 대화는 이 화면 메모리에만 있고, 서버는 매 요청에 받은 history로만 답한다(무상태).
 export default function SessionPage() {
   const { state } = useFlow();
+  const [videoMode, setVideoMode] = useState<boolean | null>(null);
+  useEffect(() => { setVideoMode(new URLSearchParams(window.location.search).get("avatar") === "1"); }, []);
   // 공고를 고르지 않고 "말 연습" 탭에서 바로 온 경우에도 일반적인 청년 프로그램 상황으로 연습한다
   const ready = useRequire(state.sceneId !== null && state.level !== null, "/practice");
-  if (!ready) return null;
-  return <Session sceneId={state.sceneId!} level={state.level!} programTitle={state.program?.title ?? GENERAL_TITLE} general={state.program === null} concerns={state.concerns} />;
+  if (!ready || videoMode === null) return null;
+  return <Session sceneId={state.sceneId!} level={state.level!} programTitle={state.program?.title ?? GENERAL_TITLE} general={state.program === null} concerns={state.concerns} videoMode={videoMode} />;
 }
 
 const GENERAL_TITLE = "청년 프로그램";
@@ -34,6 +37,7 @@ function Session({
   programTitle,
   general,
   concerns,
+  videoMode,
 }: {
   sceneId: SceneId;
   level: Level;
@@ -41,6 +45,7 @@ function Session({
   /** 공고 없이 하는 연습. 흐름 단계 표시를 하지 않고, 노선에서 다녀왔는지 묻지 않는다. */
   general: boolean;
   concerns: string[];
+  videoMode: boolean;
 }) {
   const step = general ? undefined : 4;
   const router = useRouter();
@@ -58,6 +63,10 @@ function Session({
   const [input, setInput] = useState("");
   const [avatar, setAvatar] = useState<AvatarState>("thinking");
   const [confirm, setConfirm] = useState(false);
+  const [showVideoInput, setShowVideoInput] = useState(false);
+  const [showCaptions, setShowCaptions] = useState(true);
+  const [showTranscript, setShowTranscript] = useState(false);
+  const [muted, setMuted] = useState(false);
   // 한걸음 버튼·아래 탭으로 다른 곳에 가려 할 때의 목적지. 확인을 받고 연습을 접은 뒤 이동한다.
   const [leaveTo, setLeaveTo] = useState<string | null>(null);
   const ac = useRef<AbortController | null>(null);
@@ -66,6 +75,8 @@ function Session({
 
   const info = levelInfo(level);
   const isMock = USE_MOCK || mock || sim?.source === "MOCK";
+  const video = useVideoAvatar(videoMode);
+  const videoSpeak = video.speak;
 
   const tts = useSpeechOutput(
     useCallback(() => setAvatar("speaking"), []),
@@ -80,10 +91,11 @@ function Session({
 
   const say = useCallback(
     (text: string) => {
-      setAvatar(tts.enabled ? "speaking" : "idle");
-      tts.speak(text);
+      setAvatar(tts.enabled || videoMode ? "speaking" : "idle");
+      if (videoMode) videoSpeak(text);
+      else tts.speak(text);
     },
-    [tts],
+    [tts, videoMode, videoSpeak],
   );
 
   // E5: 위기 신호. 일반 연습을 바로 멈추고 도움 안내로. 대화 내용은 어디에도 남기지 않는다.
@@ -155,10 +167,10 @@ function Session({
   // 새 대사·답하는 중 표시·다른 표현 제안이 생기면 맨 아래로 내린다.
   // 하단 고정 입력창이 마지막 말풍선을 가리지 않도록 요소가 아니라 문서 끝까지 스크롤한다.
   useEffect(() => {
-    if (!sim) return;
+    if (!sim || videoMode) return;
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     window.scrollTo({ top: document.documentElement.scrollHeight, behavior: reduce ? "auto" : "smooth" });
-  }, [sim, lines, busy, alternatives, choices, error, finished]);
+  }, [sim, lines, busy, alternatives, choices, error, finished, videoMode]);
 
   const send = (raw: string, useMockNow = mock) => {
     const text = raw.trim().slice(0, MESSAGE_MAX);
@@ -271,7 +283,7 @@ function Session({
           {sceneTitle(sceneId)} <span className="font-normal text-ink-3">({level} {info.title})</span>
         </p>
       </div>
-      {tts.supported && (
+      {tts.supported && !videoMode && (
         <IconButton
           label={tts.enabled ? "소리 끄기" : "소리로 듣기"}
           aria-pressed={tts.enabled}
@@ -405,6 +417,64 @@ function Session({
       </div>
     </div>
   );
+
+  if (videoMode) {
+    const latestLine = lines[lines.length - 1];
+    return (
+      <main className="mx-auto flex h-dvh max-w-120 flex-col overflow-hidden bg-[#10141b] text-white">
+        <div className="relative min-h-0 flex-1 overflow-hidden bg-[#555e69]">
+          <video ref={video.setVideoElement} autoPlay playsInline className="absolute inset-0 h-full w-full object-cover object-center" />
+          <audio ref={video.setAudioElement} autoPlay />
+          <div aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/65 via-transparent via-35% to-black/75" />
+
+          <header className="absolute inset-x-0 top-0 z-10 flex items-center gap-3 px-4 pb-5 pt-[max(1rem,env(safe-area-inset-top))]">
+            <button type="button" aria-label="연습 나가기" onClick={() => setConfirm(true)} className="grid size-10 shrink-0 place-items-center rounded-full bg-black/25 text-white"><ArrowLeft size={21} aria-hidden /></button>
+            <div className="min-w-0 flex-1 text-center">
+              <h1 className="truncate text-[15px] font-semibold">{sceneTitle(sceneId)}</h1>
+              <p className="mt-0.5 text-xs text-white/75">{level} · {info.title}</p>
+            </div>
+            <button type="button" aria-label={muted ? "상대방 소리 켜기" : "상대방 소리 끄기"} aria-pressed={muted} onClick={() => { video.setMuted(!muted); setMuted(!muted); if (muted) video.playAudio(); }} className="grid size-10 shrink-0 place-items-center rounded-full bg-black/25 text-white">{muted ? <VolumeX size={20} aria-hidden /> : <Volume2 size={20} aria-hidden />}</button>
+          </header>
+
+          {video.status !== "ready" && (
+            <div role="status" className="absolute inset-0 grid place-items-center px-8 text-center">
+              <div className="rounded-2xl bg-black/55 px-6 py-5 backdrop-blur-sm">
+                <p className="font-semibold">{video.status === "failed" ? "영상 연결이 원활하지 않아요" : "연습 상대를 연결하고 있어요"}</p>
+                <p className="mt-2 text-sm text-white/80">{video.status !== "failed" ? "잠시만 기다려 주세요." : video.failure === "unknown_avatar" ? "아바타 ID가 올바른지, 이 계정에서 사용할 수 있는지 확인해 주세요." : video.failure === "concurrency_limit" ? "다른 영상 연습이 진행 중이에요. 기존 연습을 종료하고 다시 시도해 주세요." : video.failure === "quota_exceeded" ? "아바타 사용 한도에 도달했어요." : video.failure === "auth" ? "아바타 서비스 인증을 확인해 주세요." : "다시 시도하거나 채팅으로 연습할 수 있어요."}</p>
+                {video.status === "failed" && <button type="button" onClick={() => router.push("/practice/avatar")} className="mt-4 rounded-full bg-white px-4 py-2 text-sm font-semibold text-[#20232d]">연습 방식 다시 고르기</button>}
+              </div>
+            </div>
+          )}
+
+          <div className="absolute inset-x-0 bottom-0 z-10 px-4 pb-4">
+            {error && <div role="alert" className="mb-3 rounded-2xl bg-black/75 p-3 text-sm"><p>답을 받지 못했어요. 다시 시도해 주세요.</p><div className="mt-2 flex gap-4"><button type="button" onClick={error.retry} className="font-bold underline">다시 시도하기</button>{error.mockLabel.startsWith("예시 응답") && <button type="button" onClick={() => { setMock(true); setError(null); send(input, true); }} className="font-bold underline">예시 응답으로 계속하기</button>}</div></div>}
+            {showTranscript && <div role="log" aria-label="대화 내역" aria-live="polite" className="mb-3 max-h-48 space-y-2 overflow-y-auto rounded-2xl bg-black/75 p-4 text-sm">{lines.map((line, i) => <p key={i}><span className="font-semibold text-white/65">{line.role === "AI" ? "연습 상대" : "나"} · </span>{line.text}</p>)}</div>}
+            {showCaptions && !showTranscript && latestLine && <div role="status" aria-live="polite" className="rounded-2xl bg-black/65 px-4 py-3 text-[15px] leading-relaxed backdrop-blur-sm"><span className="mb-1 block text-xs font-semibold text-white/65">{latestLine.role === "AI" ? "연습 상대" : level === "L1" ? "예시 답변" : "나"}</span>{latestLine.text}</div>}
+            {busy === "sending" && <p role="status" className="mt-2 text-center text-sm text-white/80">연습 상대가 답하고 있어요…</p>}
+            {sim && <p className="mt-2 text-center text-xs text-white/75">{sim.disclaimer} {isMock && "예시 상대예요."}</p>}
+          </div>
+        </div>
+
+        <div className="shrink-0 bg-[#20242c] px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3">
+          {level === "L2" && choices && !busy && !finished && <div className="mb-3 flex gap-2 overflow-x-auto pb-1" aria-label="답할 문장 고르기">{choices.map((choice) => <button key={choice} type="button" onClick={() => send(choice)} className="shrink-0 rounded-full bg-white/10 px-4 py-2 text-sm text-white">{choice}</button>)}</div>}
+          {alternatives.length > 0 && !busy && !finished && <div className="mb-3 flex gap-2 overflow-x-auto pb-1" aria-label="다른 표현 고르기">{alternatives.map((alternative) => <button key={alternative} type="button" onClick={() => { setInput(alternative); setShowVideoInput(true); }} className="shrink-0 rounded-full border border-white/25 px-4 py-2 text-sm text-white">{alternative}</button>)}</div>}
+          {showVideoInput && level !== "L1" && !finished && <form onSubmit={(event) => { event.preventDefault(); send(input); }} className="mb-3 flex gap-2"><label htmlFor="video-msg" className="sr-only">할 말</label><input id="video-msg" ref={inputRef} value={input} onChange={(event) => setInput(event.target.value)} maxLength={level === "L2" ? 60 : MESSAGE_MAX} placeholder="할 말을 입력해 주세요" autoComplete="off" className="min-h-11 min-w-0 flex-1 rounded-full bg-white/10 px-4 text-white placeholder:text-white/50 focus-visible:outline-2 focus-visible:outline-white" /><button type="submit" aria-label="보내기" disabled={!input.trim() || busy !== null} className="grid size-11 place-items-center rounded-full bg-[#514ef5] disabled:opacity-40"><SendHorizontal size={19} aria-hidden /></button></form>}
+          {stt.listening && <p role="status" className="mb-2 text-center text-xs text-white/75">듣고 있어요. 말을 마치면 입력창에 채워져요.</p>}
+          {stt.error && <p role="status" className="mb-2 text-center text-xs text-white/75">음성 입력을 사용할 수 없어요. 글자로 입력해 주세요.</p>}
+          {finished ? <button type="button" onClick={() => complete(false)} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[#514ef5] font-semibold"><Check size={20} aria-hidden />연습 마치기</button> : level === "L1" ? <div className="flex gap-2"><button type="button" onClick={() => setConfirm(true)} className="min-h-12 flex-1 rounded-full bg-white/10">멈추기</button><button type="button" onClick={nextScriptLine} disabled={!sim} className="min-h-12 flex-1 rounded-full bg-[#514ef5] font-semibold disabled:opacity-40">다음 대사 보기</button></div> : (
+            <div className="flex items-start justify-around gap-1 text-center text-[11px] text-white/75">
+              <button type="button" disabled={!stt.supported || !sim} onClick={() => { setShowVideoInput(true); if (stt.listening) stt.stop(); else { video.playAudio(); stt.start(); } }} className="flex w-14 flex-col items-center gap-1 disabled:opacity-40"><span className={`grid size-11 place-items-center rounded-full ${stt.listening ? "bg-[#514ef5]" : "bg-white/10"}`}>{stt.listening ? <MicOff size={19} aria-hidden /> : <Mic size={19} aria-hidden />}</span>{stt.listening ? "입력 중지" : "음성 입력"}</button>
+              <button type="button" aria-pressed={showVideoInput} onClick={() => setShowVideoInput(!showVideoInput)} className="flex w-14 flex-col items-center gap-1"><span className={`grid size-11 place-items-center rounded-full ${showVideoInput ? "bg-[#514ef5]" : "bg-white/10"}`}><Keyboard size={19} aria-hidden /></span>글자 입력</button>
+              <button type="button" onClick={() => setConfirm(true)} className="flex w-14 flex-col items-center gap-1"><span className="grid size-12 place-items-center rounded-full bg-[#ee454d]"><PhoneOff size={21} aria-hidden /></span>연습 종료</button>
+              <button type="button" aria-pressed={showCaptions} onClick={() => { setShowCaptions(!showCaptions); setShowTranscript(false); }} className="flex w-14 flex-col items-center gap-1"><span className={`grid size-11 place-items-center rounded-full ${showCaptions ? "bg-[#514ef5]" : "bg-white/10"}`}><Captions size={19} aria-hidden /></span>자막</button>
+              <button type="button" aria-pressed={showTranscript} onClick={() => setShowTranscript(!showTranscript)} className="flex w-14 flex-col items-center gap-1"><span className={`grid size-11 place-items-center rounded-full ${showTranscript ? "bg-[#514ef5]" : "bg-white/10"}`}>{showTranscript ? <X size={19} aria-hidden /> : <MessageCircle size={19} aria-hidden />}</span>대화 내역</button>
+            </div>
+          )}
+        </div>
+        <ConfirmDialog open={confirm} title="연습을 멈출까요?" body={said ? "지금까지 한 연습을 정리하고 마음 체크로 넘어가요." : "연습을 종료하고 장면 선택으로 돌아가요."} cancelLabel="계속 연습하기" confirmLabel="연습 종료하기" onCancel={() => setConfirm(false)} onConfirm={stop} />
+      </main>
+    );
+  }
 
   return (
     <AppShell back={() => setConfirm(true)} step={step} footer={footer} onLeave={setLeaveTo}>

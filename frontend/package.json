@@ -4,11 +4,17 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "avatar:worker": "node avatar-agent.mjs start --log-level fatal",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
   },
   "dependencies": {
+    "@livekit/agents": "^1.9.5",
+    "@livekit/agents-plugin-synthesia": "^1.9.5",
+    "dotenv": "^18.0.9",
+    "livekit-client": "^2.23.0",
+    "livekit-server-sdk": "^2.19.2",
     "lucide-react": "^1.61.0",
     "next": "15.5.28",
     "react": "19.1.0",

@@ -157,6 +157,10 @@
 
 서버는 연습 세션을 저장하지 않는다. `simulationId`는 경로 일관성을 위한 임의 UUID이며 서버 쪽 상태가 없다.
 
+### 로컬 영상 연결: `POST /api/avatar`
+
+이 경로는 백엔드가 아닌 프론트 개발 서버에서 제공하며 운영 모드에서는 사용할 수 없다. 요청 본문은 없고, 같은 출처의 요청에만 LiveKit 방 URL과 5분짜리 참가 토큰 `{ "url": "wss://…", "token": "…" }`을 반환한다. 응답은 캐시하지 않는다. Synthesia 키와 LiveKit 비밀키는 반환하지 않는다. 이 기능은 별도의 `npm run avatar:worker` 실행이 필요하다. 사용량과 설정은 `frontend/README.md`를 참고한다.
+
 ### `POST /simulations`
 
 ```json

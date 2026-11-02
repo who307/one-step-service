@@ -29,7 +29,7 @@ export default function PracticeSetupPage() {
           className="w-full"
           onClick={() => {
             update({ sceneId: scene, level, practice: null, after: null, ...(general ? { before: null } : {}) });
-            router.push(general ? "/check/before" : "/practice/session");
+            router.push(general ? "/check/before" : "/practice/avatar");
           }}
         >
           연습 시작

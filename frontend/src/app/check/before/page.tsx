@@ -13,7 +13,7 @@ export default function BeforeCheckPage() {
   const general = state.program === null;
   const ready = useRequire(!general || state.sceneId !== null, "/practice");
   if (!ready) return null;
-  const next = general ? "/practice/session" : "/practice";
+  const next = general ? "/practice/avatar" : "/practice";
 
   return (
     <AppShell back={general ? "/practice" : "/concerns"} step={general ? undefined : 2}>
