@@ -1,0 +1,18 @@
+services:
+  rag-db:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_DB: onestep_rag
+      POSTGRES_USER: onestep
+      POSTGRES_PASSWORD: ${RAG_DB_PASSWORD:?Set RAG_DB_PASSWORD in backend/.env}
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - rag-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U onestep -d onestep_rag"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+volumes:
+  rag-pgdata:

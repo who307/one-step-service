@@ -30,6 +30,7 @@ import com.onkey.onestep.integration.NoticeAnalyzer.Found;
 import com.onkey.onestep.program.Category;
 import com.onkey.onestep.program.Mode;
 import com.onkey.onestep.program.Program;
+import com.onkey.onestep.rag.RagSourceDocument;
 
 import lombok.extern.slf4j.Slf4j;
 import tools.jackson.core.JacksonException;
@@ -158,6 +159,50 @@ public class OntongYouthProgramProvider implements ProgramProvider {
                 .map(n -> toProgram(n, today))
                 .filter(p -> p != null && p.id().equals(id))
                 .findFirst();
+    }
+
+    /** RAG 수집은 화면용 캐시를 우회해 최신 API 자료를 가져오고, 본문을 자르지 않는다. */
+    public Optional<RagSourceDocument> fetchRagDocument(String id) {
+        if (id == null || !id.matches("ontong-\\d{1,30}")) return Optional.empty();
+        String plcyNo = id.substring(ID_PREFIX.length());
+        return fetch(Map.of("plcyNo", plcyNo, "pageSize", "1")).items().stream()
+                .filter(OntongYouthProgramProvider::isSeoul)
+                .filter(n -> plcyNo.equals(text(n, "plcyNo")))
+                .filter(n -> text(n, "plcyNm") != null)
+                .map(this::toRagDocument)
+                .findFirst();
+    }
+
+    /** API가 실제 제공한 항목만 검색 본문으로 만든다. 추정 장소·준비물을 포함하지 않는다. */
+    RagSourceDocument toRagDocument(JsonNode n) {
+        String plcyNo = text(n, "plcyNo");
+        String title = text(n, "plcyNm");
+        StringJoiner sections = new StringJoiner("\n\n");
+        ragSection(sections, "주관 기관", text(n, "sprvsnInstCdNm"));
+        ragSection(sections, "운영 기관", text(n, "operInstCdNm"));
+        ragSection(sections, "정책 설명", text(n, "plcyExplnCn"));
+        ragSection(sections, "지원 내용", text(n, "plcySprtCn"));
+        // 자격과 제외 조건을 한 항목으로 보관해서 함께 검색한다.
+        ragSection(sections, "참여 대상", eligibility(n));
+        ragSection(sections, "소득 기준", text(n, "earnEtcCn"));
+        ragSection(sections, "사업 기간", period(text(n, "bizPrdBgngYmd"), text(n, "bizPrdEndYmd"), text(n, "bizPrdEtcCn")));
+        ragSection(sections, "신청 기간", text(n, "aplyYmd"));
+        ragSection(sections, "신청 방법", text(n, "plcyAplyMthdCn"));
+        ragSection(sections, "선정 방법", text(n, "srngMthdCn"));
+        ragSection(sections, "제출 서류", text(n, "sbmsnDcmntCn"));
+        ragSection(sections, "기타", text(n, "etcMttrCn"));
+        ragSection(sections, "신청 사이트", url(text(n, "aplyUrlAddr")));
+        ragSection(sections, "참고 사이트 1", url(text(n, "refUrlAddr1")));
+        ragSection(sections, "참고 사이트 2", url(text(n, "refUrlAddr2")));
+        return new RagSourceDocument(ID_PREFIX + plcyNo, title, DETAIL_URL + plcyNo,
+                objectMapper.writeValueAsString(n), sections.toString());
+    }
+
+    private static void ragSection(StringJoiner sections, String heading, String value) {
+        if (value == null || value.isBlank()) return;
+        String normalized = value.replace("\r\n", "\n").replace('\r', '\n')
+                .replace("\u0000", "").strip();
+        if (!normalized.isEmpty()) sections.add("## " + heading + "\n" + normalized);
     }
 
     private static final Pattern SEOUL = Pattern.compile("^(서울특별시|서울시)(\\s|$)");
