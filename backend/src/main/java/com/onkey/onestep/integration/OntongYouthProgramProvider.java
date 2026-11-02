@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.StringJoiner;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -39,7 +40,7 @@ import tools.jackson.databind.ObjectMapper;
 /**
  * 온통청년 청년정책 API({@code /go/ythip/getPlcy}) 연동. {@code onestep.youth-center.enabled=true} 일 때만 활성화된다.
  * <ul>
- *   <li>등록된 정책 전체를 1,000건씩 나눠 받아 그중 서울시가 진행하는 정책만 메모리에 둔다(공개 공고라 사용자 데이터가 아님). 6시간마다 새로 받는다.</li>
+ *   <li>등록된 정책 전체를 1,000건씩 나눠 받아 그중 서울시가 진행하는 정책만 메모리에 둔다(공개 공고라 사용자 데이터가 아님). 6시간이 지나면 지난 목록으로 응답하면서 뒤에서 새로 받는다.</li>
  *   <li>신청·사업 기간이 끝난 정책도 목록에 두되 closed=true 로 표시하고 뒤로 보낸다.</li>
  *   <li>활동 종류·참여 방식·장소·준비물은 {@link NoticeAnalyzer} 가 공고 문장을 읽어 고른다.
  *       장소·준비물을 원문에서 못 찾으면 추정값을 ESTIMATED 로 표시한다.</li>
@@ -71,6 +72,7 @@ public class OntongYouthProgramProvider implements ProgramProvider {
     private volatile List<Program> cache = List.of();
     private volatile Map<String, Program> byId = Map.of();
     private volatile Instant cachedAt = Instant.EPOCH;
+    private final AtomicBoolean refreshing = new AtomicBoolean(false);
 
     public OntongYouthProgramProvider(AppProperties properties, ObjectMapper objectMapper) {
         AppProperties.YouthCenter yc = properties.youthCenter();
@@ -108,8 +110,32 @@ public class OntongYouthProgramProvider implements ProgramProvider {
         return "ONTONG";
     }
 
+    /**
+     * 받아 둔 목록이 있으면 잠금 없이 바로 돌려준다. 6시간이 지났으면 지난 목록을 돌려주면서 뒤에서 새로 받는다.
+     * 처음(목록이 비었을 때)만 받아 올 때까지 기다린다.
+     */
     @Override
-    public synchronized List<Program> findAll() {
+    public List<Program> findAll() {
+        List<Program> current = cache;
+        if (current.isEmpty()) {
+            return load();
+        }
+        if (!Instant.now().isBefore(cachedAt.plus(CACHE_TTL)) && refreshing.compareAndSet(false, true)) {
+            Thread.ofVirtual().name("ontong-refresh").start(() -> {
+                try {
+                    load();
+                } catch (RuntimeException e) {
+                    log.warn("ontong refresh failed type={}", e.getClass().getSimpleName());
+                } finally {
+                    refreshing.set(false);
+                }
+            });
+        }
+        return current;
+    }
+
+    /** 동시에 여러 번 받지 않도록 잠근다. 기다리는 동안 다른 요청이 이미 받아 왔으면 그것을 쓴다. */
+    private synchronized List<Program> load() {
         if (!cache.isEmpty() && Instant.now().isBefore(cachedAt.plus(CACHE_TTL))) {
             return cache;
         }
@@ -131,9 +157,10 @@ public class OntongYouthProgramProvider implements ProgramProvider {
         List<Program> list = merged.values().stream()
                 .sorted((a, b) -> Boolean.compare(a.closed(), b.closed()))
                 .toList();
-        cache = list;
+        // 잠금 없이 읽는 쪽이 새 목록과 옛 시각을 함께 보지 않도록 목록을 마지막에 바꾼다
         byId = Map.copyOf(merged);
         cachedAt = Instant.now();
+        cache = list;
         log.info("ontong programs loaded count={} open={} ms={}", list.size(),
                 list.stream().filter(p -> !p.closed()).count(), elapsedMs(started));
         return list;

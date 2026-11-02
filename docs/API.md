@@ -95,19 +95,38 @@
 ### `POST /recommendations`
 
 ```json
-{ "category": "COOKING", "mode": "OFFLINE", "q": "요리", "openOnly": true }
+{
+  "categories": ["COOKING", "TALK"],
+  "modes": ["OFFLINE"],
+  "q": "청년 공간",
+  "openOnly": true,
+  "sort": "DEADLINE",
+  "offset": 0,
+  "limit": 20
+}
 ```
 
-모두 선택. `openOnly: true`면 마감된 공고를 뺀다. 과거 이용 기록은 쓰지 않는다.
+모두 선택. 과거 이용 기록은 쓰지 않는다.
+
+- `categories`·`modes`: 같은 묶음 안에서는 하나만 맞아도 되고(OR), 묶음끼리는 모두 맞아야 한다(AND). 예전 단일 필드 `category`·`mode`도 받으며 각 목록에 더해진다.
+- `q`: 띄어 쓴 단어가 모두 들어 있어야 한다(AND). 공백은 무시하고 비교한다("청년공간"으로 "청년 공간"을 찾는다). 제목·기관·요약·장소·참여 대상에서 찾는다. 최대 100자.
+- `openOnly: true`면 마감된 공고를 뺀다.
+- `sort`: `RECOMMENDED`(기본, 원래 순서) · `DEADLINE`(신청 마감일 가까운 순, 마감일 없으면 뒤) · `LATEST`(신청 시작일 최근 순, 시작일 없으면 뒤). 어느 정렬이든 신청할 수 있는 공고가 먼저 온다.
+- `offset`(0 이상)·`limit`(1~100): 페이지. `limit`를 비우면 전체를 돌려준다. 범위를 벗어나면 400 `INVALID_REQUEST`.
 
 ```json
 {
   "source": "MOCK",
-  "items": [{ "program": ProgramSummary, "reasons": ["고른 활동 종류(요리·살림)예요", "직접 방문하는 활동이에요"] }]
+  "items": [{ "program": ProgramSummary, "reasons": ["고른 활동 종류(요리·살림)예요", "직접 방문하는 활동이에요"] }],
+  "total": 3,
+  "categoryCounts": { "DAILY": 1, "COOKING": 2, "WORK": 1, "ART": 2, "EXERCISE": 1, "TALK": 1 },
+  "modeCounts": { "OFFLINE": 2, "ONLINE": 1, "GROUP": 3, "SOLO": 0 }
 }
 ```
 
-고른 조건을 모두 만족하는 공고만 돌려주고(AND), 맞은 조건을 `reasons`에 적는다. 아무 조건도 없으면 전체를 `reasons: []`로 돌려준다. 신청할 수 있는 공고가 먼저 온다. 추천은 지원 자격 충족을 뜻하지 않는다.
+- `total`: 조건에 맞는 전체 공고 수. `items`는 그중 `offset`부터 `limit`개.
+- `categoryCounts`·`modeCounts`: 칩 옆에 보이는 숫자. 그 묶음의 선택만 빼고 나머지 조건(다른 묶음·검색어·모집 중)을 모두 적용했을 때 그 칩에 맞는 공고 수.
+- 맞은 조건을 `reasons`에 적는다. 아무 조건도 없으면 `reasons: []`. 추천은 지원 자격 충족을 뜻하지 않는다.
 
 ## 참여 타임라인
 
