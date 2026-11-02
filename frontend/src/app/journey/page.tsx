@@ -6,33 +6,35 @@ import { Check, ExternalLink, House, MessageSquareText, RotateCcw } from "lucide
 import { AppShell, ScreenTitle } from "@/components/layout/AppShell";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/States";
-import { useFlow, useRequire } from "@/features/flow/FlowProvider";
+import { programKeyOf, useFlow, useRequire } from "@/features/flow/FlowProvider";
 
-// 나의 노선(현재 이용 중에만). 연습한 것과 실제로 다녀온 것을 구분한다.
+// 참여 체크. 흐름에서는 빠졌고 내 기록 › 공고에서만 연다. 연습한 것과 실제로 다녀온 것을 구분한다.
 // 실제 참여 단계는 사용자가 직접 체크하고, 연습 완료를 방문으로 세지 않는다.
 
 const MISSIONS = ["준비물 챙기기", "집에서 출발하기", "도착해서 접수하기", "활동 참여하기", "집에 도착하기"];
 
 export default function JourneyPage() {
   const router = useRouter();
-  const { state, toggleCheck, reset, addStop, stops } = useFlow();
-  const ready = useRequire(state.program !== null);
+  const { state, toggleCheck, reset, addStop, stops, records } = useFlow();
+  const ready = useRequire(state.program !== null, "/records");
   const [confirm, setConfirm] = useState(false);
   if (!ready) return null;
 
   const t = state.program!;
+  // 내 기록에서 되살려 열면 이번 이용의 연습 횟수가 0부터라, 남아 있는 연습 기록으로 센다
+  const key = programKeyOf(state);
+  const practiced = records.filter((r) => r.programKey === key).length;
   const prepared = [
     { label: "공고 확인", done: true },
-    { label: "참여 타임라인 보기", done: true },
-    { label: state.practiceCount > 0 ? `말 연습 ${state.practiceCount}번` : "말 연습", done: state.practiceCount > 0 },
+    { label: practiced > 0 ? `말 연습 ${practiced}번` : "말 연습", done: practiced > 0 },
   ];
   const doneCount = MISSIONS.filter((m) => state.checked[`mission:${m}`]).length;
   const pct = Math.round((doneCount / MISSIONS.length) * 100);
   const applyUrl = state.program?.applicationUrl;
 
   return (
-    <AppShell back="/result">
-      <ScreenTitle sub={t.title}>나의 노선</ScreenTitle>
+    <AppShell back="/records">
+      <ScreenTitle sub={t.title}>참여 체크</ScreenTitle>
 
       <section aria-labelledby="prep">
         <h2 id="prep" className="text-[17px] font-bold">
@@ -145,7 +147,7 @@ export default function JourneyPage() {
         </div>
       </section>
 
-      <p className="mt-8 text-[13px] text-ink-3">이 노선은 저장되지 않아요. 새로고침하거나 창을 닫으면 지워져요.</p>
+      <p className="mt-8 text-[13px] text-ink-3">이 체크는 이 브라우저에만 남아요. 서버로 보내지 않고, 새로고침해도 이어져요.</p>
 
       <ConfirmDialog
         open={confirm}

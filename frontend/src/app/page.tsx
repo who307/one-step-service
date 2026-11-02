@@ -9,11 +9,11 @@ import { Button } from "@/components/ui/Button";
 import { useFlow } from "@/features/flow/FlowProvider";
 import { hasSeenGuide } from "@/features/guide/seen";
 import { ProgramProgressBar, useResume } from "@/features/journey/ProgramProgressBar";
-import { VisitAsk } from "@/features/journey/VisitAsk";
+import { JourneyLine } from "@/features/journey/JourneyLine";
 import { PROGRESS_GROUPS, pendingVisit, programProgress } from "@/lib/journey";
 
 // S0 시작(오늘).
-// 위에서부터: 다녀왔나요?(답할 공고가 있을 때) → 이어서 하기(준비 중인 공고가 있을 때) → 새로 시작하기 입구 → 안내서 다시 보기.
+// 위에서부터: 이어서 하기(준비 중인 공고가 있을 때) → 나의 노선(다녀왔나요?는 노선의 다음 역에서 묻는다) → 새로 시작하기 입구 → 안내서 다시 보기.
 // 처음 온 사람은 안내서(/guide)로 먼저 보낸다. 위쪽 "도움"은 상담 전화 안내이고 안내서와 따로다.
 export default function StartPage() {
   const router = useRouter();
@@ -31,7 +31,7 @@ export default function StartPage() {
 
   const inProgress = state.program !== null || state.noticeText !== "";
   const returning = stops.length > 0 || records.length > 0;
-  // 위에서 다녀왔는지 묻는 공고는 이어서 하기에 또 띄우지 않는다
+  // 노선에서 다녀왔는지 묻는 공고는 이어서 하기에 또 띄우지 않는다
   const asking = pendingVisit(stops)?.programKey;
   const current = programProgress(stops, snapshots).find((p) => !p.done && p.programKey !== asking) ?? null;
 
@@ -46,23 +46,23 @@ export default function StartPage() {
         </>
       )}
 
-      <div className="mt-5 grid gap-3">
-        <VisitAsk />
+      {current && (
+        <section aria-labelledby="resume-title" className="mt-5 rounded-md bg-ink px-4 py-4 text-paper">
+          <p className="text-[13px] text-surface-2">준비 중인 공고</p>
+          <h2 id="resume-title" className="mt-0.5 text-[18px] font-bold">
+            {current.programTitle}
+          </h2>
+          <div className="mt-3">
+            <ProgramProgressBar step={current.step} tone="dark" />
+          </div>
+          <Button className="mt-4 w-full" onClick={() => resumeProgram(current)}>
+            {PROGRESS_GROUPS[current.step]}부터 이어서 하기
+          </Button>
+        </section>
+      )}
 
-        {current && (
-          <section aria-labelledby="resume-title" className="rounded-md bg-ink px-4 py-4 text-paper">
-            <p className="text-[13px] text-surface-2">준비 중인 공고</p>
-            <h2 id="resume-title" className="mt-0.5 text-[18px] font-bold">
-              {current.programTitle}
-            </h2>
-            <div className="mt-3">
-              <ProgramProgressBar step={current.step} tone="dark" />
-            </div>
-            <Button className="mt-4 w-full" onClick={() => resumeProgram(current)}>
-              {PROGRESS_GROUPS[current.step]}부터 이어서 하기
-            </Button>
-          </section>
-        )}
+      <div className="mt-8">
+        <JourneyLine />
       </div>
 
       <h2 className="mt-8 text-[17px] font-bold">새로 시작하기</h2>
