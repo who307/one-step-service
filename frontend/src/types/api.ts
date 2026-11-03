@@ -182,3 +182,5 @@ export interface InquiryRequest {
 export interface InquiryResponse {
   text: string;
 }
+/** 로컬 개발용 아바타 방 접속 정보. 토큰은 짧게 유효하며 화면에 표시하지 않는다. */
+export type AvatarConnection = { url: string; token: string };
