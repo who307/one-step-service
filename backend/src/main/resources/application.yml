@@ -12,6 +12,22 @@ server:
     include-stacktrace: never
 
 onestep:
+  rag:
+    enabled: ${RAG_ENABLED:false}
+    db-url: ${RAG_DB_URL:jdbc:postgresql://localhost:5433/onestep_rag}
+    db-user: ${RAG_DB_USER:onestep}
+    db-password: ${RAG_DB_PASSWORD:}
+    api-key: ${OPENAI_API_KEY:}
+    embedding-model: ${RAG_EMBEDDING_MODEL:text-embedding-3-small}
+    embedding-dimensions: ${RAG_EMBEDDING_DIMENSIONS:1536}
+    admin-token: ${RAG_ADMIN_TOKEN:}
+    top-k: 4
+    # 검증 전 보수적인 검색 후보 기준. 이 점수가 정답 확률이나 정보 부재를 보장하지 않는다.
+    min-score: ${RAG_MIN_SCORE:0.25}
+    sync-enabled: ${RAG_SYNC_ENABLED:false}
+    sync-delay-ms: ${RAG_SYNC_DELAY_MS:21600000}
+    sync-initial-delay-ms: ${RAG_SYNC_INITIAL_DELAY_MS:60000}
+    program-ids: ${RAG_PROGRAM_IDS:ontong-20261021005400214208,ontong-20261023005400214281,ontong-20261018005400213993}
   cors:
     allowed-origins: ${CORS_ORIGINS:http://localhost:3000}
   youth-center:          # 온통청년 API (enabled=false 동안 Mock 공고)

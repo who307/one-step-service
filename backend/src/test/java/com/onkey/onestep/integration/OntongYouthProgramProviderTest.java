@@ -11,6 +11,7 @@ import com.onkey.onestep.common.NoticeValidator;
 import com.onkey.onestep.program.Category;
 import com.onkey.onestep.program.Mode;
 import com.onkey.onestep.program.Program;
+import com.onkey.onestep.rag.RagSourceDocument;
 
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
@@ -97,5 +98,27 @@ class OntongYouthProgramProviderTest {
     void foreignIdIsNotFoundWithoutNetwork() {
         assertThat(provider.findById("sample-thursday-table")).isEmpty();
         assertThat(provider.findById("ontong-abc")).isEmpty();
+        assertThat(provider.fetchRagDocument("sample-thursday-table")).isEmpty();
+        assertThat(provider.fetchRagDocument("ontong-abc")).isEmpty();
+    }
+
+    @Test
+    void ragSourceIsUncappedAndContainsNoInferredFields() {
+        var source = mapper.createObjectNode();
+        source.put("plcyNo", "123");
+        source.put("plcyNm", "긴 청년 정책");
+        source.put("plcySprtCn", "지원 설명 ".repeat(1200) + "마지막 필수 조건");
+        source.put("sprtTrgtAgeLmtYn", "Y");
+        source.put("sprtTrgtMinAge", "19");
+        source.put("sprtTrgtMaxAge", "39");
+        source.put("ptcpPrpTrgtCn", "이미 지원받은 사람은 제외");
+        RagSourceDocument document = provider.toRagDocument(source);
+
+        assertThat(document.programId()).isEqualTo("ontong-123");
+        assertThat(document.content().length()).isGreaterThan(4000);
+        assertThat(document.content()).contains("마지막 필수 조건", "참여 제한: 이미 지원받은 사람은 제외")
+                .doesNotContain("신분증", "휴대폰", "## 장소", "## 준비물");
+        assertThat(mapper.readTree(document.rawJson()).path("plcySprtCn").asString())
+                .endsWith("마지막 필수 조건");
     }
 }
