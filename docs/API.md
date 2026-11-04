@@ -207,12 +207,13 @@
   "sceneId": "CHECKIN",
   "level": "L3",
   "programTitle": "같이 밥 먹는 목요일",
+  "programId": "ontong-20261021005400214208",
   "history": [{ "role": "AI", "text": "안녕하세요!" }, { "role": "USER", "text": "안녕하세요" }],
   "userText": "네, 처음 왔어요"
 }
 ```
 
-`userText` 1~300자. `history`는 이번 `userText`를 포함하지 않는다.
+`userText` 1~300자. `history`는 이번 `userText`를 포함하지 않는다. `programId`는 선택(영문·숫자·`-`·`_` 60자 이내). 온통청년 공고(`ontong-…`)면 서버가 이 공고 원문 전체를 근거로 답한다. 온통청년 연동이 꺼졌거나 원문을 못 받으면(실패·4초 초과) 원문 없이 답한다(응답 형식은 같다).
 
 ```json
 {

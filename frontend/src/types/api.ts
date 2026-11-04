@@ -148,6 +148,8 @@ export interface MessageRequest {
   sceneId: SceneId;
   level: Level;
   programTitle: string;
+  /** 고른 공고의 id. 서버가 이 공고 원문에서 근거를 찾아 답한다. 공고 없이 하는 연습이면 뺀다. */
+  programId?: string;
   history: ChatLine[];
   userText: string;
 }

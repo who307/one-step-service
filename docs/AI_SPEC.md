@@ -1,6 +1,6 @@
 # AI 명세
 
-프롬프트 원본: `backend/src/main/java/com/onkey/onestep/integration/Prompts.java` (`PROMPT_VERSION = "2026-11-04.v1"`). 프롬프트를 바꾸면 버전을 올리고 아래 평가 사례를 다시 돌린다.
+프롬프트 원본: `backend/src/main/java/com/onkey/onestep/integration/Prompts.java` (`PROMPT_VERSION = "2026-11-04.v4"`). 프롬프트를 바꾸면 버전을 올리고 아래 평가 사례를 다시 돌린다.
 
 ## 제공자
 
@@ -19,7 +19,7 @@
 - 준비물: "준비물: …" → "…지참" → 제출 서류 순으로 원문에서 찾는다(`NOTICE`). 없으면 참여 방식·활동 종류에 맞는 일반 준비물로 추정(`ESTIMATED`).
 - 추정값은 noticeText에 넣지 않아 타임라인에서 `CONFIRMED`가 될 수 없다. `noticeText`는 "항목: 값" 줄로 만들어 타임라인 원문 인용 검증에 쓴다. 호출 실패는 `LLM_ERROR`(502)로 돌려주고, 프론트가 "예시로 계속하기"를 묻는다.
 
-OpenAI: Chat Completions(`/v1/chat/completions`), `response_format: json_object`, 응답이 `refusal`이면 `LLM_ERROR`, 읽기 타임아웃 12초 → `LLM_TIMEOUT`, 429 → `RATE_LIMITED`, 그 밖의 실패·JSON 형식 오류 → `LLM_ERROR`. 장면마다 AI가 맡는 상대역(문의 담당자·접수 담당자·다른 참여자·진행자)을 프롬프트에 적는다(`Prompts.counterpart`). 장면 이름만 주면 모델이 사용자 쪽을 연기하는 경우가 있었다. 실패해도 서버가 몰래 Mock으로 바꾸지 않는다. 프론트가 사용자에게 "예시로 계속하기"를 묻고, 고르면 Mock임을 화면에 표시한다. 문의 문장만 실패 시 기본 틀로 대체한다.
+OpenAI: Chat Completions(`/v1/chat/completions`), `response_format: json_object`, 응답이 `refusal`이면 `LLM_ERROR`, 읽기 타임아웃 12초 → `LLM_TIMEOUT`, 429 → `RATE_LIMITED`, 그 밖의 실패·JSON 형식 오류 → `LLM_ERROR`. 연습 메시지에 `programId`(온통청년 공고)가 있으면 `NoticeTextFinder`가 그 공고 원문 전체(`fetchRagDocument`, API 제공 항목만·추정값 없음)를 `<evidence>` 태그로 넣는다. 원문은 30분 메모리에 둔다. 온통청년 연동이 꺼졌거나 가져오기 실패·4초 초과면 태그를 넣지 않고 원문 없이 답한다. 장면마다 AI가 맡는 상대역(문의 담당자·접수 담당자·다른 참여자·진행자)을 프롬프트에 적는다(`Prompts.counterpart`). 장면 이름만 주면 모델이 사용자 쪽을 연기하는 경우가 있었다. 실패해도 서버가 몰래 Mock으로 바꾸지 않는다. 프론트가 사용자에게 "예시로 계속하기"를 묻고, 고르면 Mock임을 화면에 표시한다. 문의 문장만 실패 시 기본 틀로 대체한다.
 
 ### 모델 선택 (2026-11-04 측정)
 
@@ -32,6 +32,19 @@ OpenAI: Chat Completions(`/v1/chat/completions`), `response_format: json_object`
 | gpt-4.1-mini | 약 0.9초 | — | — | 직접 호출만 측정 |
 
 같은 측정에서 Gemini 무료 등급은 gemini-3.5-flash가 p50 4.9초에 하루 20회 한도, gemini-3.5-flash-lite가 p50 0.85초에 모르는 사실을 단정한 답이 5/12였다.
+
+### 공고 원문 전체 vs 문단 검색(RAG)
+
+서울시 공고 135건의 원문 길이는 중간값 438자, 상위 10% 1,316자, 가장 긴 공고 3,587자다(2026-11-04). 연습 대화는 고른 공고 하나만 다루므로 문단을 검색하지 않고 원문을 통째로 넣는다. 검색 단계의 지연·놓침이 없고 DB가 필요 없다. RAG 모듈(`rag/`)은 그대로 두며, 여러 공고에서 찾기나 첨부 PDF처럼 긴 자료를 다룰 때 쓴다.
+
+`scripts/notice-context-evaluate.mjs`로 같은 질문을 원문 없이·원문 전체로 보냈다(공고 2개, 원문에 답이 있는 질문 9개·없는 질문 3개, 2회 반복, gpt-5.4-mini, 프롬프트 v4).
+
+| | 응답 p50 / p95 | 원문에 있는 사실을 맞게 답함 | 원문에 없는 것을 "확인되지 않았어요" |
+|---|---|---|---|
+| 원문 없음 | 1.2초 / 1.6초 | 0 / 18 | 6 / 6 |
+| **원문 전체** | 1.3초 / 1.6초 | **18 / 18** | 6 / 6 |
+
+공고마다 첫 질문은 원문을 받아오느라 0.5~1초 더 걸린다(그 뒤 30분은 메모리에서 읽음). 정답 판정은 기대 낱말로 하고 응답 원문을 사람이 다시 읽었다.
 
 ## 공통 규칙 (시스템 프롬프트)
 

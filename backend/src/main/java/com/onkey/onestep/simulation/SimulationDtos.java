@@ -5,6 +5,7 @@ import java.util.List;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 /** 상황 연습 API 요청/응답 DTO. 서버는 연습 세션을 저장하지 않는다(무상태). */
@@ -37,10 +38,12 @@ public final class SimulationDtos {
             List<ChatLine> script
     ) {}
 
+    /** programId 는 선택. 온통청년 공고면 공고 원문 전체를 근거로 답한다. */
     public record SimulationMessageRequest(
             @NotNull SceneId sceneId,
             @NotNull Level level,
             @Size(max = 100) String programTitle,
+            @Pattern(regexp = "[A-Za-z0-9_-]{1,60}") String programId,
             @Size(max = MAX_HISTORY) List<@Valid ChatLine> history,
             @NotBlank @Size(min = 1, max = 300) String userText
     ) {}
@@ -62,8 +65,12 @@ public final class SimulationDtos {
 
     public record SimulationCompleteResponse(String summary, List<String> nextPhrases) {}
 
-    /** 제공자(Mock/OpenAI)에 넘기는 연습 맥락. */
-    public record SimulationContext(SceneId sceneId, Level level, String programTitle, List<String> concerns) {}
+    /** 제공자(Mock/OpenAI)에 넘기는 연습 맥락. evidence 는 공고 원문(근거)이며 없으면 빈 목록. */
+    public record SimulationContext(SceneId sceneId, Level level, String programTitle, List<String> concerns,
+                                    List<NoticeEvidence> evidence) {}
+
+    /** 공고 근거 한 덩어리. section 은 이름표(지금은 "공고 원문"), text 는 "## 항목" 줄로 나뉜 본문. */
+    public record NoticeEvidence(String section, String text) {}
 
     /** 제공자가 돌려주는 시작 정보. */
     public record Opening(String text, List<String> choices, List<ChatLine> script) {}

@@ -12,6 +12,7 @@ import com.onkey.onestep.common.ErrorCode;
 import com.onkey.onestep.integration.AiConversationProvider;
 import com.onkey.onestep.simulation.SimulationDtos.AiMessage;
 import com.onkey.onestep.simulation.SimulationDtos.ChatLine;
+import com.onkey.onestep.simulation.SimulationDtos.NoticeEvidence;
 import com.onkey.onestep.simulation.SimulationDtos.Opening;
 import com.onkey.onestep.simulation.SimulationDtos.Reply;
 import com.onkey.onestep.simulation.SimulationDtos.Role;
@@ -39,10 +40,11 @@ public class SimulationService {
 
     private final AiConversationProvider provider;
     private final CrisisDetector crisisDetector;
+    private final NoticeTextFinder noticeTextFinder;
 
     public SimulationStartResponse start(SimulationStartRequest request) {
         SimulationContext ctx = new SimulationContext(request.sceneId(), request.level(),
-                clean(request.programTitle()), request.concerns() == null ? List.of() : request.concerns());
+                clean(request.programTitle()), request.concerns() == null ? List.of() : request.concerns(), List.of());
         Opening opening = provider.startSimulation(ctx);
 
         List<String> choices = request.level() == Level.L2 ? limit(opening.choices(), CHOICE_COUNT) : null;
@@ -71,8 +73,9 @@ public class SimulationService {
         }
 
         boolean finished = turn >= maxTurns;
+        List<NoticeEvidence> evidence = noticeTextFinder.find(request.programId());
         SimulationContext ctx = new SimulationContext(request.sceneId(), request.level(),
-                clean(request.programTitle()), List.of());
+                clean(request.programTitle()), List.of(), evidence);
         Reply reply = provider.reply(ctx, history, request.userText().trim(), turn, finished);
 
         List<String> choices = request.level() == Level.L2 && !finished ? limit(reply.choices(), CHOICE_COUNT) : null;
@@ -90,7 +93,7 @@ public class SimulationService {
 
     public SimulationCompleteResponse complete(SimulationCompleteRequest request) {
         SimulationContext ctx = new SimulationContext(request.sceneId(), request.level(),
-                clean(request.programTitle()), List.of());
+                clean(request.programTitle()), List.of(), List.of());
         List<ChatLine> history = request.history() == null ? List.of() : request.history();
         SimulationCompleteResponse summary = provider.summarize(ctx, history);
         List<String> phrases = summary.nextPhrases() == null ? List.of()

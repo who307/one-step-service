@@ -190,7 +190,7 @@ function Session({
     const c = new AbortController();
     ac.current = c;
     api
-      .sendMessage(sim.simulationId, { sceneId, level, programTitle, history, userText: text }, { signal: c.signal, mock: useMockNow })
+      .sendMessage(sim.simulationId, { sceneId, level, programTitle, programId: general ? undefined : state.program?.id, history, userText: text }, { signal: c.signal, mock: useMockNow })
       .then((res) => {
         setBusy(null);
         if (res.crisis || !res.reply) return toCrisis();
