@@ -57,6 +57,15 @@ export default defineAgent({
       },
       outputOptions: { transcriptionEnabled: false },
     });
+    // 사용자가 말하려고 마이크를 누르면 하던 말을 멈춘다(영상·음성 모두).
+    ctx.room.on(RoomEvent.DataReceived, (_payload, from, _kind, topic) => {
+      if (topic !== 'onestep.avatar.interrupt' || !from?.identity.startsWith('user-')) return;
+      try {
+        session.interrupt().await.catch(() => {});
+      } catch {
+        // 지금 말하는 중이 아니면 멈출 것이 없다.
+      }
+    });
     await ctx.room.localParticipant.publishData(new TextEncoder().encode('ready'), { topic: 'onestep.avatar.ready', reliable: true });
   },
 });
