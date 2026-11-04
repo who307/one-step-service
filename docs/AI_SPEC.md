@@ -1,6 +1,6 @@
 # AI 명세
 
-프롬프트 원본: `backend/src/main/java/com/onkey/onestep/integration/Prompts.java` (`PROMPT_VERSION = "2026-11-04.v1"`). 프롬프트를 바꾸면 버전을 올리고 아래 평가 사례를 다시 돌린다.
+프롬프트 원본: `backend/src/main/java/com/onkey/onestep/integration/Prompts.java` (`PROMPT_VERSION = "2026-11-04.v2"`). 프롬프트를 바꾸면 버전을 올리고 아래 평가 사례를 다시 돌린다.
 
 ## 제공자
 
@@ -19,7 +19,7 @@
 - 준비물: "준비물: …" → "…지참" → 제출 서류 순으로 원문에서 찾는다(`NOTICE`). 없으면 참여 방식·활동 종류에 맞는 일반 준비물로 추정(`ESTIMATED`).
 - 추정값은 noticeText에 넣지 않아 타임라인에서 `CONFIRMED`가 될 수 없다. `noticeText`는 "항목: 값" 줄로 만들어 타임라인 원문 인용 검증에 쓴다. 호출 실패는 `LLM_ERROR`(502)로 돌려주고, 프론트가 "예시로 계속하기"를 묻는다.
 
-OpenAI: Chat Completions(`/v1/chat/completions`), `response_format: json_object`, 응답이 `refusal`이면 `LLM_ERROR`, 읽기 타임아웃 12초 → `LLM_TIMEOUT`, 429 → `RATE_LIMITED`, 그 밖의 실패·JSON 형식 오류 → `LLM_ERROR`. 장면마다 AI가 맡는 상대역(문의 담당자·접수 담당자·다른 참여자·진행자)을 프롬프트에 적는다(`Prompts.counterpart`). 장면 이름만 주면 모델이 사용자 쪽을 연기하는 경우가 있었다. 실패해도 서버가 몰래 Mock으로 바꾸지 않는다. 프론트가 사용자에게 "예시로 계속하기"를 묻고, 고르면 Mock임을 화면에 표시한다. 문의 문장만 실패 시 기본 틀로 대체한다.
+OpenAI: Chat Completions(`/v1/chat/completions`), `response_format: json_object`, 응답이 `refusal`이면 `LLM_ERROR`, 읽기 타임아웃 12초 → `LLM_TIMEOUT`, 429 → `RATE_LIMITED`, 그 밖의 실패·JSON 형식 오류 → `LLM_ERROR`. 연습 메시지에 `programId`가 있으면 `NoticeEvidenceFinder`가 RAG로 그 공고 원문에서 근거 3개를 찾아 `<evidence>` 태그로 넣는다. 검색어는 바로 앞 상대역의 말 + 사용자 말(이어지는 질문 대응). 근거가 없으면 태그를 넣지 않아 RAG를 끈 때와 같은 프롬프트가 된다. 장면마다 AI가 맡는 상대역(문의 담당자·접수 담당자·다른 참여자·진행자)을 프롬프트에 적는다(`Prompts.counterpart`). 장면 이름만 주면 모델이 사용자 쪽을 연기하는 경우가 있었다. 실패해도 서버가 몰래 Mock으로 바꾸지 않는다. 프론트가 사용자에게 "예시로 계속하기"를 묻고, 고르면 Mock임을 화면에 표시한다. 문의 문장만 실패 시 기본 틀로 대체한다.
 
 ### 모델 선택 (2026-11-04 측정)
 

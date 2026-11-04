@@ -118,6 +118,7 @@ public class OpenAiConversationProvider implements AiConversationProvider {
     @Override
     public Reply reply(SimulationContext ctx, List<ChatLine> history, String userText, int turn, boolean finished) {
         String prompt = Prompts.SIMULATION_REPLY_TASK + "\n" + context(ctx)
+                + evidence(ctx)
                 + "\nturn: " + turn + ", finished: " + finished
                 + "\n<history>\n" + transcript(history) + "\n</history>"
                 + "\n<user_text>\n" + Prompts.data(userText) + "\n</user_text>";
@@ -244,6 +245,16 @@ public class OpenAiConversationProvider implements AiConversationProvider {
                 + "\n난이도: " + ctx.level() + " (최대 " + ctx.level().maxTurns() + "턴)"
                 + "\n<notice>프로그램 이름: " + Prompts.data(ctx.programTitle() == null ? "알 수 없음" : ctx.programTitle())
                 + "</notice>";
+    }
+
+    /** RAG 근거가 없으면 태그를 넣지 않아 RAG 를 끈 때와 같은 프롬프트가 된다. */
+    static String evidence(SimulationContext ctx) {
+        if (ctx.evidence() == null || ctx.evidence().isEmpty()) {
+            return "";
+        }
+        return "\n<evidence>\n" + ctx.evidence().stream()
+                .map(e -> "[" + Prompts.data(e.section()) + "]\n" + Prompts.data(e.text()))
+                .collect(Collectors.joining("\n\n")) + "\n</evidence>";
     }
 
     private static String transcript(List<ChatLine> history) {
