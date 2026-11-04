@@ -1,14 +1,16 @@
 package com.onkey.onestep.integration;
 
+import com.onkey.onestep.simulation.SceneId;
+
 /**
- * Gemini 프롬프트 모음. 바꿀 때는 {@link #PROMPT_VERSION} 을 올리고 테스트 사례를 다시 확인한다.
+ * AI 프롬프트 모음(OpenAI). 바꿀 때는 {@link #PROMPT_VERSION} 을 올리고 테스트 사례를 다시 확인한다.
  * 사용자 입력·공고 원문은 태그로 감싸 데이터로만 다루게 한다(프롬프트 인젝션 방어).
  */
 public final class Prompts {
 
     private Prompts() {}
 
-    public static final String PROMPT_VERSION = "2026-10-28.v1";
+    public static final String PROMPT_VERSION = "2026-11-04.v1";
 
     public static final String SYSTEM = """
             너는 사회적 고립 청년이 활동 참여를 미리 연습하도록 돕는 '연습 상대'다.
@@ -70,6 +72,19 @@ public final class Prompts {
             {"text":string}
             - 초안의 질문 항목을 빠뜨리거나 새 사실을 추가하지 않는다. 5~8문장 이내.
             """;
+
+    /**
+     * 장면마다 AI 가 맡는 상대역. 사용자는 늘 참여하려는 청년이다.
+     * 장면 이름만 주면 모델이 사용자 쪽(문의하는 사람)을 연기하는 경우가 있어 역할을 못박는다.
+     */
+    public static String counterpart(SceneId scene) {
+        return switch (scene) {
+            case FIRST_INQUIRY -> "기관의 프로그램 문의 담당자. 사용자의 질문에 답하고 되묻는다";
+            case CHECKIN -> "활동 장소 접수처의 담당자. 사용자를 맞이하고 접수를 돕는다";
+            case GREETING -> "같은 프로그램에 처음 온 다른 참여자";
+            case CLOSING -> "프로그램 진행자. 활동을 마치며 사용자의 소감을 묻는다";
+        };
+    }
 
     /** 태그 경계를 깨지 못하도록 꺾쇠를 바꾼다. */
     public static String data(String text) {

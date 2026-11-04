@@ -62,7 +62,7 @@ public final class SimulationDtos {
 
     public record SimulationCompleteResponse(String summary, List<String> nextPhrases) {}
 
-    /** 제공자(Mock/Gemini)에 넘기는 연습 맥락. */
+    /** 제공자(Mock/OpenAI)에 넘기는 연습 맥락. */
     public record SimulationContext(SceneId sceneId, Level level, String programTitle, List<String> concerns) {}
 
     /** 제공자가 돌려주는 시작 정보. */

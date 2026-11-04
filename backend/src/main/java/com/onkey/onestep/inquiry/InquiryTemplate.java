@@ -4,7 +4,7 @@ import java.util.List;
 
 import com.onkey.onestep.inquiry.InquiryDtos.InquiryDraftRequest;
 
-/** AI 없이 만드는 정중한 문의 문장 템플릿. Gemini 실패 시에도 이 결과를 돌려준다. */
+/** AI 없이 만드는 정중한 문의 문장 템플릿. AI 실패 시에도 이 결과를 돌려준다. */
 public final class InquiryTemplate {
 
     private InquiryTemplate() {}

@@ -34,10 +34,11 @@ onestep:
     enabled: ${YOUTHCENTER_ENABLED:false}
     base-url: https://www.youthcenter.go.kr
     api-key: ${YOUTHCENTER_API_KEY:}
-  gemini:                # 타임라인·상황 연습·문의 문장 (enabled=false 동안 Mock)
-    enabled: ${GEMINI_ENABLED:false}
-    api-key: ${GEMINI_API_KEY:}
-    model: ${GEMINI_MODEL:gemini-2.5-flash}
+  openai:                # 타임라인·상황 연습·문의 문장 (enabled=false 동안 Mock). 키는 RAG 와 같다
+    enabled: ${OPENAI_ENABLED:false}
+    api-key: ${OPENAI_API_KEY:}
+    model: ${OPENAI_MODEL:gpt-5.4-mini}
+    reasoning-effort: ${OPENAI_REASONING_EFFORT:}
 
 # 요청 본문·사용자 입력·공고 원문·API 키는 로그에 남기지 않는다.
 # 본문을 찍을 수 있는 웹·HTTP 클라이언트 로거는 DEBUG/TRACE 로 올리지 않는다.

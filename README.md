@@ -31,7 +31,7 @@ cd backend
 공고 근거 검색 RAG는 별도 설정으로 활성화하며 PostgreSQL과 OpenAI 임베딩을 사용합니다. 시작 방법은 [RAG 실행 안내](docs/rag/runbook.md)를 확인하세요.
 
 - 실제 공고(온통청년): `YOUTHCENTER_ENABLED=true`, `YOUTHCENTER_API_KEY=...`
-- 실제 AI: `GEMINI_ENABLED=true`, `GEMINI_API_KEY=...`. 키가 없으면 Mock 연습 상대가 동작하고 화면에 "예시 응답"으로 표시됩니다.
+- 실제 AI(OpenAI): `OPENAI_ENABLED=true`, `OPENAI_API_KEY=...`. 모델은 `OPENAI_MODEL`(기본 `gpt-5.4-mini`). 같은 키를 RAG 임베딩에도 씁니다. 키가 없으면 Mock 연습 상대가 동작하고 화면에 "예시 응답"으로 표시됩니다.
 - 8080을 다른 앱이 쓰고 있으면 `.env`에 `SERVER_PORT=8081`을 넣고, `frontend/.env.local`의 `NEXT_PUBLIC_API_BASE`도 같은 포트로 맞춥니다.
 
 ## 구조

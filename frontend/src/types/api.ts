@@ -6,7 +6,7 @@ export type Phase = "ARRIVE" | "CHECKIN" | "ACTIVITY" | "LEAVE";
 export type Label = "CONFIRMED" | "SIMULATED";
 export type SceneId = "FIRST_INQUIRY" | "CHECKIN" | "GREETING" | "CLOSING";
 export type Level = "L1" | "L2" | "L3";
-export type Source = "MOCK" | "ONTONG" | "GEMINI";
+export type Source = "MOCK" | "ONTONG" | "OPENAI";
 
 export type ErrorCode =
   | "INVALID_LENGTH"
