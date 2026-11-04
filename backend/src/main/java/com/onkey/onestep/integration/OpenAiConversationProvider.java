@@ -51,7 +51,7 @@ import tools.jackson.databind.ObjectMapper;
 public class OpenAiConversationProvider implements AiConversationProvider {
 
     static final String BASE_URL = "https://api.openai.com";
-    static final String DEFAULT_MODEL = "gpt-5-mini";
+    static final String DEFAULT_MODEL = "gpt-5.4-mini";
     static final Duration READ_TIMEOUT = Duration.ofSeconds(12);
     static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(5);
 
@@ -239,6 +239,8 @@ public class OpenAiConversationProvider implements AiConversationProvider {
 
     private static String context(SimulationContext ctx) {
         return "장면: " + ctx.sceneId().label() + " (" + ctx.sceneId() + ")"
+                + "\n너(상대역): " + Prompts.counterpart(ctx.sceneId())
+                + "\n사용자: 이 프로그램에 참여하려는 청년. 사용자의 말은 대신하지 않는다"
                 + "\n난이도: " + ctx.level() + " (최대 " + ctx.level().maxTurns() + "턴)"
                 + "\n<notice>프로그램 이름: " + Prompts.data(ctx.programTitle() == null ? "알 수 없음" : ctx.programTitle())
                 + "</notice>";

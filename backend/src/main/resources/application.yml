@@ -37,7 +37,7 @@ onestep:
   openai:                # 타임라인·상황 연습·문의 문장 (enabled=false 동안 Mock). 키는 RAG 와 같다
     enabled: ${OPENAI_ENABLED:false}
     api-key: ${OPENAI_API_KEY:}
-    model: ${OPENAI_MODEL:gpt-5-mini}
+    model: ${OPENAI_MODEL:gpt-5.4-mini}
     reasoning-effort: ${OPENAI_REASONING_EFFORT:}
 
 # 요청 본문·사용자 입력·공고 원문·API 키는 로그에 남기지 않는다.
