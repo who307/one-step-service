@@ -26,7 +26,7 @@ one-step-service/
 │       │   ├── timeline/        # 참여 타임라인·원문 인용 검증(TimelineVerifier)
 │       │   ├── simulation/      # AI 롤플레이 (무상태)
 │       │   ├── inquiry/         # 문의 문장 초안
-│       │   ├── integration/     # ProgramProvider·AiConversationProvider: Mock / 온통청년 / Gemini, Prompts
+│       │   ├── integration/     # ProgramProvider·AiConversationProvider: Mock / 온통청년 / OpenAI, Prompts
 │       │   └── common/          # 설정·CORS·예외·CrisisDetector·NoticeValidator·로그 필터
 │       └── resources/           # application.yml, mock/programs.json
 ├── docs/
@@ -60,7 +60,7 @@ one-step-service/
   Program / Timeline / Simulation / Emotion / Journey / Inquiry
             |                 |                  |
             v                 v                  v
-   [공개 공고 DB(선택)] [온통청년 API/Mock] [Gemini API/Mock]
+   [공개 공고 DB(선택)] [온통청년 API/Mock] [OpenAI API/Mock]
                                                |
                                    [STT/TTS API 또는 브라우저 음성]
 ```
@@ -216,17 +216,17 @@ one-step-service/
 - **Integration Method:** 백엔드 `ProgramProvider` 포트; `OntongYouthProgramProvider` / `MockProgramProvider` 구현(제안 이름).
 - **Notes:** 실제 사용 가능한 API, 필드, 신청 링크, 모집 상태, 호출 제한·이용 조건을 연동 전에 확인한다.
 
-### 5.2. Gemini
+### 5.2. OpenAI
 
 - **Purpose:** 참여 타임라인, AI 롤플레이, 요약, 대안 문장 및 문의 문장 초안.
-- **Integration Method:** 백엔드 `AiConversationProvider` 포트; `GeminiConversationProvider` / `MockConversationProvider` 구현(제안 이름).
+- **Integration Method:** 백엔드 `AiConversationProvider` 포트; `OpenAiConversationProvider` / `MockConversationProvider` 구현. Chat Completions JSON 모드를 쓰고, 키는 RAG 임베딩과 같은 `OPENAI_API_KEY`를 쓴다.
 - **Notes:** 역할·공고 맥락·난이도 프롬프트, JSON 검증, 타임아웃, 비용·호출 제한 대응.
 
 ### 5.3. STT / TTS (고정 캐릭터 음성 대화)
 
 - **UI:** 고정 캐릭터 이미지와 한국어 음성 입력·출력, 대화 자막. 실시간 영상 생성·화상회의 API는 사용하지 않는다.
 - **구현 선택:** 한국어 STT/TTS 제공업체(OpenAI, NAVER CLOVA 등) 또는 브라우저 Web Speech API를 실제 테스트 후 선택한다. **제공업체는 아직 확정되지 않았다.**
-- **MVP 방식:** 사용자 발화 인식 → 텍스트 → 기존 Gemini 대화 응답 → 한국어 음성 합성·재생의 턴 기반 대화. 동시 양방향 통화는 필수 아님.
+- **MVP 방식:** 사용자 발화 인식 → 텍스트 → 기존 AI 대화 응답 → 한국어 음성 합성·재생의 턴 기반 대화. 동시 양방향 통화는 필수 아님.
 - **개인정보:** 음성·전사문·대화 원문은 저장하지 않는다. 외부 음성 API 사용 시 요청별 전송 범위와 제공업체 보관 정책을 확인한다. 마이크 권한 거부·음성 실패 시 텍스트 입력으로 대체한다.
 
 ### 5.4. Mock Integrations

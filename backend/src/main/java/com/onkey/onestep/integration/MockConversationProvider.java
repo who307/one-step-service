@@ -18,7 +18,7 @@ import com.onkey.onestep.timeline.TimelineDtos.TimelineDraft;
 
 /** API 키 없이 동작하는 결정적·규칙 기반 구현(기본값). 같은 입력이면 항상 같은 결과. */
 @Component
-@ConditionalOnProperty(name = "onestep.gemini.enabled", havingValue = "false", matchIfMissing = true)
+@ConditionalOnProperty(name = "onestep.openai.enabled", havingValue = "false", matchIfMissing = true)
 public class MockConversationProvider implements AiConversationProvider {
 
     static final int L1_SCRIPT_PAIRS = 3;

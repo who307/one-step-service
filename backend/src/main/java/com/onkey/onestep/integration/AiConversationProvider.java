@@ -12,13 +12,13 @@ import com.onkey.onestep.timeline.TimelineDtos.ProgramRef;
 import com.onkey.onestep.timeline.TimelineDtos.TimelineDraft;
 
 /**
- * AI 생성 포트. 구현: {@link MockConversationProvider}(기본, 키 불필요) / {@link GeminiConversationProvider}.
+ * AI 생성 포트. 구현: {@link MockConversationProvider}(기본, 키 불필요) / {@link OpenAiConversationProvider}.
  * 실패는 {@code ApiException(LLM_ERROR | LLM_TIMEOUT | RATE_LIMITED)} 로 알린다.
  * 구현체는 입력을 저장하거나 로그로 남기지 않는다.
  */
 public interface AiConversationProvider {
 
-    /** 응답의 source 값: MOCK · GEMINI */
+    /** 응답의 source 값: MOCK · OPENAI */
     String source();
 
     /** 검증 전 타임라인 초안. 서버가 TimelineVerifier 로 다시 검증한다. */

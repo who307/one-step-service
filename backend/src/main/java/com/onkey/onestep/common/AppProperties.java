@@ -7,13 +7,13 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * enabled=false 인 동안은 Mock 구현이 쓰인다.
  */
 @ConfigurationProperties(prefix = "onestep")
-public record AppProperties(Cors cors, YouthCenter youthCenter, Gemini gemini) {
+public record AppProperties(Cors cors, YouthCenter youthCenter, OpenAi openai) {
 
     public record Cors(String allowedOrigins) {}
 
     /** 온통청년 청년정책 API */
     public record YouthCenter(boolean enabled, String baseUrl, String apiKey) {}
 
-    /** Gemini (타임라인·상황 연습·문의 문장) */
-    public record Gemini(boolean enabled, String apiKey, String model) {}
+    /** OpenAI (타임라인·상황 연습·문의 문장). 키는 RAG 임베딩과 같은 OPENAI_API_KEY 를 쓴다. */
+    public record OpenAi(boolean enabled, String apiKey, String model, String reasoningEffort) {}
 }

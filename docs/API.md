@@ -35,7 +35,7 @@
 - `Label`: `CONFIRMED` 원문에서 확인됨 · `SIMULATED` 예상(사실로 단정하지 않음)
 - `SceneId`: `FIRST_INQUIRY` 첫 문의하기 · `CHECKIN` 접수처에서 말하기 · `GREETING` 처음 만난 참여자에게 인사하기 · `CLOSING` 마무리할 때 소감 말하기
 - `Level`: `L1` 지켜보기(최대 6턴) · `L2` 짧게 답하기(최대 5턴) · `L3` 자유 대화(최대 8턴)
-- `Source`: `MOCK` · `ONTONG` · `GEMINI`
+- `Source`: `MOCK` · `ONTONG` · `OPENAI`
 
 ## 공고
 

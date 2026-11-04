@@ -1,7 +1,7 @@
 package com.onkey.onestep.integration;
 
 /**
- * Gemini 프롬프트 모음. 바꿀 때는 {@link #PROMPT_VERSION} 을 올리고 테스트 사례를 다시 확인한다.
+ * AI 프롬프트 모음(OpenAI). 바꿀 때는 {@link #PROMPT_VERSION} 을 올리고 테스트 사례를 다시 확인한다.
  * 사용자 입력·공고 원문은 태그로 감싸 데이터로만 다루게 한다(프롬프트 인젝션 방어).
  */
 public final class Prompts {

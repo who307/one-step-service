@@ -6,7 +6,7 @@
 
 | 포트 | 기본 | 실제 연동 | 켜는 법 |
 |---|---|---|---|
-| `AiConversationProvider` | `MockConversationProvider` (규칙·대본) | `GeminiConversationProvider` | `GEMINI_ENABLED=true`, `GEMINI_API_KEY`, `GEMINI_MODEL`(기본 `gemini-2.5-flash`) |
+| `AiConversationProvider` | `MockConversationProvider` (규칙·대본) | `OpenAiConversationProvider` | `OPENAI_ENABLED=true`, `OPENAI_API_KEY`(RAG 임베딩과 같은 키), `OPENAI_MODEL`(기본 `gpt-5-mini`), `OPENAI_REASONING_EFFORT`(선택) |
 | `ProgramProvider` | `MockProgramProvider` (`mock/programs.json`) | `OntongYouthProgramProvider` (온통청년 `/go/ythip/getPlcy`) | `YOUTHCENTER_ENABLED=true`, `YOUTHCENTER_API_KEY` |
 
 온통청년: 등록된 정책 전체(2026-10-28 기준 3,644건)를 1,000건씩 받아 **서울시가 진행하는 정책만**(주관·등록·상위 기관 이름이 "서울특별시"로 시작, 같은 날 130건) 6시간 메모리 캐시에 둔다(서버가 뜨면 미리 받음). 대상 지역에 서울이 들어 있어도 다른 지역·중앙 부처가 운영하는 정책은 뺀다. 기간이 끝난 정책도 `closed: true`로 두고 뒤로 보낸다. id는 `ontong-{plcyNo}`.
@@ -19,7 +19,7 @@
 - 준비물: "준비물: …" → "…지참" → 제출 서류 순으로 원문에서 찾는다(`NOTICE`). 없으면 참여 방식·활동 종류에 맞는 일반 준비물로 추정(`ESTIMATED`).
 - 추정값은 noticeText에 넣지 않아 타임라인에서 `CONFIRMED`가 될 수 없다. `noticeText`는 "항목: 값" 줄로 만들어 타임라인 원문 인용 검증에 쓴다. 호출 실패는 `LLM_ERROR`(502)로 돌려주고, 프론트가 "예시로 계속하기"를 묻는다.
 
-Gemini: `generateContent`, `responseMimeType: application/json`, 읽기 타임아웃 12초 → `LLM_TIMEOUT`, 429 → `RATE_LIMITED`, 그 밖의 실패·JSON 형식 오류 → `LLM_ERROR`. 실패해도 서버가 몰래 Mock으로 바꾸지 않는다. 프론트가 사용자에게 "예시로 계속하기"를 묻고, 고르면 Mock임을 화면에 표시한다. 문의 문장만 실패 시 기본 틀로 대체한다.
+OpenAI: Chat Completions(`/v1/chat/completions`), `response_format: json_object`, 응답이 `refusal`이면 `LLM_ERROR`, 읽기 타임아웃 12초 → `LLM_TIMEOUT`, 429 → `RATE_LIMITED`, 그 밖의 실패·JSON 형식 오류 → `LLM_ERROR`. 실패해도 서버가 몰래 Mock으로 바꾸지 않는다. 프론트가 사용자에게 "예시로 계속하기"를 묻고, 고르면 Mock임을 화면에 표시한다. 문의 문장만 실패 시 기본 틀로 대체한다.
 
 ## 공통 규칙 (시스템 프롬프트)
 
@@ -36,7 +36,7 @@ Gemini: `generateContent`, `responseMimeType: application/json`, 읽기 타임�
 - **위기 신호:** `CrisisDetector`(규칙)가 AI 호출 전에 먼저 본다. 감지되면 AI를 부르지 않고 `crisis: true`. 프론트 `lib/safety.ts`도 같은 규칙으로 먼저 막아 위기 표현을 외부로 보내지 않는다. 일반 긴장·불안("떨려요", "빨리 끝내고 싶어요")은 감지하지 않는다. 알려진 오탐: "숙제를 다 끝내고 싶어요".
 - **턴 한도:** L1 6 · L2 5 · L3 8. 넘기면 `409 INVALID_STATE`.
 
-## 평가 사례 (Gemini 연결 후 확인)
+## 평가 사례 (OpenAI 연결 후 확인)
 
 | # | 입력 | 기대 |
 |---|---|---|
