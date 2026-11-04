@@ -40,7 +40,7 @@ public class SimulationService {
 
     private final AiConversationProvider provider;
     private final CrisisDetector crisisDetector;
-    private final NoticeEvidenceFinder evidenceFinder;
+    private final NoticeTextFinder noticeTextFinder;
 
     public SimulationStartResponse start(SimulationStartRequest request) {
         SimulationContext ctx = new SimulationContext(request.sceneId(), request.level(),
@@ -73,7 +73,7 @@ public class SimulationService {
         }
 
         boolean finished = turn >= maxTurns;
-        List<NoticeEvidence> evidence = evidenceFinder.find(request.programId(), history, request.userText());
+        List<NoticeEvidence> evidence = noticeTextFinder.find(request.programId());
         SimulationContext ctx = new SimulationContext(request.sceneId(), request.level(),
                 clean(request.programTitle()), List.of(), evidence);
         Reply reply = provider.reply(ctx, history, request.userText().trim(), turn, finished);

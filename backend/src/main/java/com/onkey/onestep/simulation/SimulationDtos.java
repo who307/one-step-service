@@ -38,7 +38,7 @@ public final class SimulationDtos {
             List<ChatLine> script
     ) {}
 
-    /** programId 는 선택. 온통청년 공고면 RAG 로 공고 근거를 찾아 답에 쓴다. */
+    /** programId 는 선택. 온통청년 공고면 공고 원문 전체를 근거로 답한다. */
     public record SimulationMessageRequest(
             @NotNull SceneId sceneId,
             @NotNull Level level,
@@ -65,11 +65,11 @@ public final class SimulationDtos {
 
     public record SimulationCompleteResponse(String summary, List<String> nextPhrases) {}
 
-    /** 제공자(Mock/OpenAI)에 넘기는 연습 맥락. evidence 는 RAG 로 찾은 공고 근거이며 없으면 빈 목록. */
+    /** 제공자(Mock/OpenAI)에 넘기는 연습 맥락. evidence 는 공고 원문(근거)이며 없으면 빈 목록. */
     public record SimulationContext(SceneId sceneId, Level level, String programTitle, List<String> concerns,
                                     List<NoticeEvidence> evidence) {}
 
-    /** 공고 원문에서 찾은 근거 한 문단. section 은 "참여 대상" 같은 항목 이름. */
+    /** 공고 근거 한 덩어리. section 은 이름표(지금은 "공고 원문"), text 는 "## 항목" 줄로 나뉜 본문. */
     public record NoticeEvidence(String section, String text) {}
 
     /** 제공자가 돌려주는 시작 정보. */
