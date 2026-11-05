@@ -39,6 +39,13 @@ export function useVideoAvatar(avatarKey: string | null) {
     void room.localParticipant.sendText(text, { topic: "lk.chat" }).catch(() => setStatus("failed"));
   }, []);
 
+  /** 사용자가 말하려고 누르면 아바타가 하던 말을 멈춘다(끼어들기). 아바타 소리가 마이크로 다시 들어가는 것도 막는다. */
+  const interrupt = useCallback(() => {
+    const room = roomRef.current;
+    if (!room || !readyRef.current) return;
+    void room.localParticipant.publishData(new TextEncoder().encode("1"), { topic: "onestep.avatar.interrupt", reliable: true }).catch(() => {});
+  }, []);
+
   useEffect(() => {
     if (!enabled) return;
     let cancelled = false;
@@ -98,5 +105,5 @@ export function useVideoAvatar(avatarKey: string | null) {
 
   const playAudio = useCallback(() => { void audioRef.current?.play(); }, []);
   const setMuted = useCallback((muted: boolean) => { if (audioRef.current) audioRef.current.muted = muted; }, []);
-  return { status, failure, setVideoElement, setAudioElement, playAudio, setMuted, speak };
+  return { status, failure, setVideoElement, setAudioElement, playAudio, setMuted, speak, interrupt };
 }

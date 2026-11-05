@@ -2,14 +2,14 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Captions, Check, Keyboard, MessageCircle, Mic, MicOff, PhoneOff, RotateCcw, SendHorizontal, Volume2, VolumeX, X } from "lucide-react";
+import { ArrowLeft, Captions, Check, Keyboard, MessageCircle, Mic, PhoneOff, RotateCcw, SendHorizontal, Volume2, VolumeX, X } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button, IconButton } from "@/components/ui/Button";
 import { ConfirmDialog, ErrorPanel, Loading, MockNote } from "@/components/ui/States";
 import { GENERAL_PRACTICE, useFlow, useRequire } from "@/features/flow/FlowProvider";
 import { Avatar, StateLabel, type AvatarState } from "@/features/simulation/Avatar";
 import { SimulationProgress } from "@/features/simulation/SimulationProgress";
-import { useSpeechInput, useSpeechOutput } from "@/features/simulation/useSpeech";
+import { usePushToTalk, useSpaceToTalk, useSpeechOutput } from "@/features/simulation/useSpeech";
 import { useVideoAvatar } from "@/features/simulation/useVideoAvatar";
 import { AVATARS, DEFAULT_AVATAR_KEY } from "@/features/simulation/avatar-catalog.mjs";
 import { api, isAbort, USE_MOCK } from "@/lib/api";
@@ -131,11 +131,19 @@ function Session({
     useCallback(() => setAvatar("speaking"), []),
     useCallback(() => setAvatar((a) => (a === "speaking" ? "idle" : a)), []),
   );
-  const stt = useSpeechInput(
-    useCallback((text: string) => {
-      setInput(text.slice(0, MESSAGE_MAX));
-      inputRef.current?.focus();
-    }, []),
+  // 누르고 말하기: 떼면 들은 말을 바로 보낸다. send 는 매번 새로 만들어지므로 최신 것을 ref 로 부른다.
+  const sendRef = useRef<(text: string) => void>(() => {});
+  const videoInterrupt = video.interrupt;
+  const videoPlayAudio = video.playAudio;
+  const stt = usePushToTalk(
+    useCallback((text: string) => sendRef.current(text), []),
+    useCallback(() => {
+      tts.cancel();
+      if (videoMode) {
+        videoInterrupt();
+        videoPlayAudio();
+      }
+    }, [tts, videoMode, videoInterrupt, videoPlayAudio]),
   );
 
   const say = useCallback(
@@ -225,7 +233,7 @@ function Session({
     const text = raw.trim().slice(0, MESSAGE_MAX);
     if (!text || !sim || busy || finished) return;
     if (hasCrisisSignal(text)) return toCrisis();
-    stt.stop();
+    stt.cancel();
     tts.cancel();
 
     const history = lines;
@@ -269,6 +277,33 @@ function Session({
       });
   };
 
+  useEffect(() => {
+    sendRef.current = (text: string) => send(text);
+  });
+
+  const micEnabled = !!sim && level !== "L1" && !finished && busy === null && stt.supported;
+  useSpaceToTalk(micEnabled && !confirm && leaveTo === null, stt.press, stt.release);
+  // 스페이스 안내는 키보드가 있는 환경(마우스 포인터)에서만 붙인다.
+  const [finePointer] = useState(() => typeof window !== "undefined" && window.matchMedia("(pointer: fine)").matches);
+  const micHint =
+    stt.state === "starting"
+      ? "마이크를 켜는 중…"
+      : stt.state === "listening"
+        ? stt.interim || "듣고 있어요. 다 말하면 손을 떼세요"
+        : stt.state === "finishing"
+          ? stt.interim || "보내는 중…"
+          : stt.error === "denied"
+            ? "마이크 권한이 없어요. 글자로 입력해 주세요"
+            : stt.error === "notHeard"
+              ? "잘 듣지 못했어요. 누른 채로 다시 말해 주세요"
+              : stt.error
+                ? "음성 인식이 안 됐어요. 글자로 입력해 주세요"
+                : !stt.supported
+                  ? "이 브라우저는 음성 입력을 지원하지 않아요. 글자로 입력해 주세요"
+                  : micEnabled
+                    ? `마이크를 누른 채로 말하고, 떼면 보내져요${finePointer ? " (스페이스도 돼요)" : ""}`
+                    : "";
+
   const nextScriptLine = () => {
     if (!sim?.script) return;
     const line = sim.script[scriptAt];
@@ -287,7 +322,7 @@ function Session({
     if (!sim) return;
     leaving.current = true;
     tts.cancel();
-    stt.stop();
+    stt.cancel();
     setBusy("completing");
     setError(null);
     api
@@ -432,13 +467,14 @@ function Session({
         />
         {stt.supported && (
           <IconButton
-            label={stt.listening ? "음성 입력 멈추기" : "말로 입력하기"}
-            aria-pressed={stt.listening}
+            label="누르고 있는 동안 말하기"
+            aria-pressed={stt.active}
+            disabled={!micEnabled}
+            {...stt.buttonProps}
             tone="strong"
-            onClick={() => (stt.listening ? stt.stop() : (tts.cancel(), stt.start()))}
-            className={stt.listening ? "bg-route-soft" : ""}
+            className={`${stt.active ? "bg-route-soft" : ""} disabled:opacity-40`}
           >
-            {stt.listening ? <MicOff size={20} aria-hidden /> : <Mic size={20} aria-hidden />}
+            <Mic size={20} aria-hidden />
           </IconButton>
         )}
         <button
@@ -454,14 +490,9 @@ function Session({
         <Button variant="quiet" size="sm" className="-ml-3" onClick={() => setConfirm(true)}>
           멈추기
         </Button>
-        <p aria-live="polite" className="text-right text-[13px] text-ink-3">
-          {stt.listening
-            ? "듣는 중… 말을 마치면 입력창에 채워져요"
-            : stt.error === "denied"
-              ? "마이크 권한이 없어요. 글자로 입력해 주세요"
-              : stt.error
-                ? "음성 인식이 안 됐어요. 글자로 입력해 주세요"
-                : ""}
+        {/* 듣는 중에는 화면 읽기 프로그램이 인식 중인 글자를 읽지 않게 한다(그 소리가 다시 마이크로 들어간다). */}
+        <p aria-live={stt.active ? "off" : "polite"} className={`text-right text-[13px] ${stt.active ? "text-ink" : "text-ink-3"}`}>
+          {micHint}
         </p>
       </div>
     </div>
@@ -514,11 +545,10 @@ function Session({
           {level === "L2" && choices && !busy && !finished && <div className="mb-3"><p className="mb-1.5 text-xs font-semibold text-white/65">이렇게 답해 볼 수 있어요</p><div className="flex gap-2 overflow-x-auto pb-1" aria-label="답할 문장 고르기">{choices.map((choice) => <button key={choice} type="button" onClick={() => send(choice)} className="shrink-0 rounded-full bg-white/10 px-4 py-2 text-sm text-white">{choice}</button>)}</div></div>}
           {level === "L3" && alternatives.length > 0 && !busy && !finished && <div className="mb-3"><p className="mb-1.5 text-xs font-semibold text-white/65">방금 한 말, 이렇게도 말할 수 있어요</p><div className="flex gap-2 overflow-x-auto pb-1" aria-label="다른 표현 고르기">{alternatives.map((alternative) => <button key={alternative} type="button" onClick={() => { setInput(alternative); setShowVideoInput(true); }} className="shrink-0 rounded-full border border-white/25 px-4 py-2 text-sm text-white">{alternative}</button>)}</div></div>}
           {showVideoInput && level !== "L1" && !finished && <form onSubmit={(event) => { event.preventDefault(); send(input); }} className="mb-3 flex gap-2"><label htmlFor="video-msg" className="sr-only">할 말</label><input id="video-msg" ref={inputRef} value={input} onChange={(event) => setInput(event.target.value)} maxLength={level === "L2" ? 60 : MESSAGE_MAX} placeholder="할 말을 입력해 주세요" autoComplete="off" className="min-h-11 min-w-0 flex-1 rounded-full bg-white/10 px-4 text-white placeholder:text-white/50 focus-visible:outline-2 focus-visible:outline-white" /><button type="submit" aria-label="보내기" disabled={!input.trim() || busy !== null} className="grid size-11 place-items-center rounded-full bg-[#514ef5] disabled:opacity-40"><SendHorizontal size={19} aria-hidden /></button></form>}
-          {stt.listening && <p role="status" className="mb-2 text-center text-xs text-white/75">듣고 있어요. 말을 마치면 입력창에 채워져요.</p>}
-          {stt.error && <p role="status" className="mb-2 text-center text-xs text-white/75">음성 입력을 사용할 수 없어요. 글자로 입력해 주세요.</p>}
+          {level !== "L1" && !finished && micHint && <p aria-live={stt.active ? "off" : "polite"} className={`mb-2 text-center ${stt.active ? "text-[15px] text-white" : "text-xs text-white/75"}`}>{micHint}</p>}
           {finished ? <button type="button" onClick={() => complete(false)} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[#514ef5] font-semibold"><Check size={20} aria-hidden />연습 마치기</button> : level === "L1" ? <div className="flex gap-2"><button type="button" onClick={() => setConfirm(true)} className="min-h-12 flex-1 rounded-full bg-white/10">멈추기</button><button type="button" onClick={nextScriptLine} disabled={!sim} className="min-h-12 flex-1 rounded-full bg-[#514ef5] font-semibold disabled:opacity-40">다음 대사 보기</button></div> : (
             <div className="flex items-start justify-around gap-1 text-center text-[11px] text-white/75">
-              <button type="button" disabled={!stt.supported || !sim} onClick={() => { setShowVideoInput(true); if (stt.listening) stt.stop(); else { video.playAudio(); stt.start(); } }} className="flex w-14 flex-col items-center gap-1 disabled:opacity-40"><span className={`grid size-11 place-items-center rounded-full ${stt.listening ? "bg-[#514ef5]" : "bg-white/10"}`}>{stt.listening ? <MicOff size={19} aria-hidden /> : <Mic size={19} aria-hidden />}</span>{stt.listening ? "입력 중지" : "음성 입력"}</button>
+              <button type="button" aria-label="누르고 있는 동안 말하기" aria-pressed={stt.active} disabled={!micEnabled} {...stt.buttonProps} className="flex w-14 flex-col items-center gap-1 disabled:opacity-40"><span className={`grid size-11 place-items-center rounded-full transition-transform ${stt.active ? "scale-110 bg-[#514ef5]" : "bg-white/10"}`}><Mic size={19} aria-hidden /></span>{stt.active ? "말하는 중" : "누르고 말하기"}</button>
               <button type="button" aria-pressed={showVideoInput} onClick={() => setShowVideoInput(!showVideoInput)} className="flex w-14 flex-col items-center gap-1"><span className={`grid size-11 place-items-center rounded-full ${showVideoInput ? "bg-[#514ef5]" : "bg-white/10"}`}><Keyboard size={19} aria-hidden /></span>글자 입력</button>
               <button type="button" onClick={() => setConfirm(true)} className="flex w-14 flex-col items-center gap-1"><span className="grid size-12 place-items-center rounded-full bg-[#ee454d]"><PhoneOff size={21} aria-hidden /></span>연습 종료</button>
               <button type="button" aria-pressed={showCaptions} onClick={() => { setShowCaptions(!showCaptions); setShowTranscript(false); }} className="flex w-14 flex-col items-center gap-1"><span className={`grid size-11 place-items-center rounded-full ${showCaptions ? "bg-[#514ef5]" : "bg-white/10"}`}><Captions size={19} aria-hidden /></span>자막</button>
@@ -540,8 +570,8 @@ function Session({
       ) : (
         <>
           <div className="pt-4">
-            <Avatar state={stt.listening ? "listening" : busy === "sending" ? "thinking" : avatar} size="sm" />
-            <StateLabel state={stt.listening ? "listening" : busy === "sending" ? "thinking" : avatar} />
+            <Avatar state={stt.active ? "listening" : busy === "sending" ? "thinking" : avatar} size="sm" />
+            <StateLabel state={stt.active ? "listening" : busy === "sending" ? "thinking" : avatar} />
             <p className="mt-2 text-center text-[13px] text-ink-3">{sim.disclaimer}</p>
             <div className="mt-3">
               <SimulationProgress turn={turn} max={sim.maxTurns} label={level === "L1" ? "대화" : "말한 횟수"} />
@@ -653,7 +683,7 @@ function Session({
           leaving.current = true;
           ac.current?.abort();
           tts.cancel();
-          stt.stop();
+          stt.cancel();
           router.push(to);
         }}
       />
