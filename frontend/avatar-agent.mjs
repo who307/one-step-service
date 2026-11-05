@@ -1,12 +1,26 @@
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { config } from 'dotenv';
+import { config, parse } from 'dotenv';
 import { cli, defineAgent, inference, ServerOptions, voice } from '@livekit/agents';
 import { RoomEvent } from '@livekit/rtc-node';
 import { AvatarSession } from '@livekit/agents-plugin-synthesia';
 import { configuredAvatars, DEFAULT_AVATAR_KEY } from './src/features/simulation/avatar-catalog.mjs';
 
 // URL.pathname은 Windows에서 /C:/... 가 되어 dotenv가 파일을 못 찾는다(quiet라 오류도 안 보인다).
-config({ path: fileURLToPath(new URL('../backend/.env', import.meta.url)), quiet: true });
+const ENV_FILE = fileURLToPath(new URL('../backend/.env', import.meta.url));
+config({ path: ENV_FILE, quiet: true });
+
+/**
+ * 아바타 ID는 연결할 때마다 .env를 다시 읽어 찾는다. 워커와 미리 띄워 둔 작업 프로세스는 시작 시점의 환경 변수를 들고 있어서,
+ * .env만 바꾸고 워커를 다시 켜지 않으면 예전 ID(예: SYNTHESIA_AVATAR_ID)로 다른 아바타가 연결됐다.
+ */
+function avatarEnv() {
+  try {
+    return { ...process.env, ...parse(readFileSync(ENV_FILE)) };
+  } catch {
+    return process.env;
+  }
+}
 
 export default defineAgent({
   entry: async (ctx) => {
@@ -32,7 +46,7 @@ export default defineAgent({
     // 토큰 라우트가 고른 아바타 key를 작업 메타데이터로 넘긴다. 실제 ID는 이 워커의 환경 변수에서만 찾는다.
     let requested = DEFAULT_AVATAR_KEY;
     try { requested = JSON.parse(ctx.job.metadata || '{}').avatar ?? DEFAULT_AVATAR_KEY; } catch {}
-    const choice = configuredAvatars(process.env).get(requested);
+    const choice = configuredAvatars(avatarEnv()).get(requested);
     if (!choice) {
       await ctx.room.localParticipant.publishData(new TextEncoder().encode('unknown_avatar'), { topic: 'onestep.avatar.error', reliable: true }).catch(() => {});
       await ctx.room.disconnect();

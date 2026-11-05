@@ -30,7 +30,7 @@ npm run dev                  # http://localhost:3000
 
 `backend/.env`에 `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, `SYNTHESIA_API_KEY`와 아바타 ID를 설정한다. 프론트 개발 서버와 별도 터미널에서 `npm run avatar:worker`를 실행한 뒤 연습 방식 → 아바타 영상 → 아바타 선택(`/practice/avatar/select`) 순서로 들어간다.
 
-고를 수 있는 아바타 목록(이름·소개·분위기)은 `src/features/simulation/avatar-catalog.mjs`에 있다. 실제 Synthesia ID는 목록 key마다 `SYNTHESIA_AVATARS=jihyun:<아바타 ID>[:<음성 ID>],daniel:<아바타 ID>`로 넣는다. 예전 `SYNTHESIA_AVATAR_ID`는 `jihyun`으로 쓴다. ID가 없는 아바타는 선택 화면에 "준비 중"으로 보인다. Synthesia 인터랙티브 아바타는 목록 API가 없으므로 Synthesia 화면의 Avatars → ••• → Copy ID로 얻은 ID를 인터랙티브 아바타로 변환해 넣는다(스톡 아바타는 쓸 수 없다). 음성 ID를 비우면 `AVATAR_TTS_VOICE` 또는 기본 음성을 쓴다. 미리보기 사진은 `public/avatars/<key>.webp|jpg|png`로 두면 보이고, 없으면 단순한 실루엣을 보여 준다. 실제 아바타와 다른 얼굴 사진을 넣지 않는다.
+고를 수 있는 아바타 목록(이름·소개)은 `src/features/simulation/avatar-catalog.mjs`에 있다. 실제 Synthesia ID는 목록 key마다 `SYNTHESIA_AVATARS=jihyun:<아바타 ID>[:<음성 ID>],minjun:<아바타 ID>`로 넣는다. 예전 `SYNTHESIA_AVATAR_ID`는 `jihyun`으로 쓴다. ID가 없는 아바타는 선택 화면에 "준비 중"으로 보인다. Synthesia 인터랙티브 아바타는 목록 API가 없으므로 Synthesia 화면의 Avatars → ••• → Copy ID로 얻은 ID를 인터랙티브 아바타로 변환해 넣는다(스톡 아바타는 쓸 수 없다). 음성 ID를 비우면 `AVATAR_TTS_VOICE` 또는 기본 음성을 쓴다. 미리보기 사진은 `public/avatars/<key>.webp|jpg|png`로 두면 보이고(Synthesia 화면의 썸네일 주소는 서명이 곧 만료되므로 내려받아 둔다), 없으면 단순한 실루엣을 보여 준다. 실제 아바타와 다른 얼굴 사진을 넣지 않는다.
 
 브라우저가 방에 들어간 뒤 20초 안에 워커가 들어오지 않으면 "아바타 워커가 응답하지 않아요"로 바로 알려 준다. 영상 연결이 실패하면 같은 대화를 채팅으로 이어 갈 수 있다. 환경 변수를 바꿨으면 두 프로세스를 다시 시작한다. 토큰 발급은 개발 모드에서만 가능하며, 운영 배포에는 인증과 사용량 제한이 필요하다.
 

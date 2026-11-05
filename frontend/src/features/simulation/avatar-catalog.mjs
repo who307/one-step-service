@@ -1,27 +1,16 @@
 // 영상 연습 상대 목록. 화면(이름·소개), 토큰 발급 라우트, 아바타 워커(avatar-agent.mjs)가 함께 쓴다.
 // 비밀값은 없다. 실제 Synthesia 아바타 ID와 음성 ID는 서버 환경 변수에서만 읽는다.
 //
-//   SYNTHESIA_AVATARS=jihyun:<아바타 ID>[:<음성 ID>],daniel:<아바타 ID>[:<음성 ID>]
+//   SYNTHESIA_AVATARS=jihyun:<아바타 ID>[:<음성 ID>],minjun:<아바타 ID>[:<음성 ID>]
 //   SYNTHESIA_AVATAR_ID=<아바타 ID>   (예전 설정. SYNTHESIA_AVATARS에 jihyun이 없으면 jihyun으로 쓴다)
 //
 // 음성 ID를 비우면 AVATAR_TTS_VOICE, 그것도 없으면 기본 음성을 쓴다.
 
-/** @typedef {"business" | "friendly" | "expert"} AvatarStyle */
-
-export const AVATAR_STYLES = /** @type {const} */ ([
-  { id: "all", label: "전체" },
-  { id: "business", label: "비즈니스" },
-  { id: "friendly", label: "친근한" },
-  { id: "expert", label: "전문가형" },
-]);
+// 미리보기 사진은 public/avatars/<key>.png 이다. Synthesia 화면의 썸네일 주소는 서명이 하루 안에 만료되므로 내려받아 둔다.
 
 export const AVATARS = /** @type {const} */ ([
-  { key: "jihyun", name: "지현", description: "친절하고 차분하게 안내하는 담당자", style: "business" },
-  { key: "daniel", name: "다니엘", description: "논리적으로 차근차근 설명하는 담당자", style: "expert" },
-  { key: "sophia", name: "소피아", description: "밝게 먼저 말을 걸어 주는 참여자", style: "friendly" },
-  { key: "jayden", name: "제이든", description: "짧고 명확하게 말하는 접수 담당자", style: "business" },
-  { key: "minjun", name: "민준", description: "편하게 이야기를 들어 주는 또래", style: "friendly" },
-  { key: "seoyeon", name: "서연", description: "꼼꼼하게 짚어 주는 프로그램 진행자", style: "expert" },
+  { key: "jihyun", name: "지현", description: "친절하고 차분하게 안내하는 담당자" },
+  { key: "minjun", name: "민준", description: "논리적으로 차근차근 설명하는 담당자" },
 ]);
 
 export const DEFAULT_AVATAR_KEY = "jihyun";
