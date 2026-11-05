@@ -2,9 +2,12 @@ package com.onkey.onestep.integration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
+
+import tools.jackson.databind.ObjectMapper;
 
 import com.onkey.onestep.simulation.Level;
 import com.onkey.onestep.simulation.SceneId;
@@ -30,5 +33,19 @@ class OpenAiConversationProviderTest {
 
         assertThat(block).startsWith("\n<evidence>\n[참여 대상]\n").endsWith("\n</evidence>");
         assertThat(block).contains("‹/evidence›").containsOnlyOnce("</evidence>");
+    }
+
+    @Test
+    void errorFieldKeepsOnlyShortIdentifiersFromOpenAiErrorBody() {
+        ObjectMapper mapper = new ObjectMapper();
+        byte[] body = """
+                {"error":{"message":"Unsupported value: 'minimal'","type":"invalid_request_error",
+                "param":"reasoning_effort","code":"unsupported_value"}}""".getBytes(StandardCharsets.UTF_8);
+
+        assertThat(OpenAiConversationProvider.errorField(mapper, body, "code")).isEqualTo("unsupported_value");
+        assertThat(OpenAiConversationProvider.errorField(mapper, body, "param")).isEqualTo("reasoning_effort");
+        assertThat(OpenAiConversationProvider.errorField(mapper, body, "message")).isEqualTo("-");
+        assertThat(OpenAiConversationProvider.errorField(mapper, "not json".getBytes(StandardCharsets.UTF_8), "code"))
+                .isEqualTo("-");
     }
 }

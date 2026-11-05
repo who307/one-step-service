@@ -11,6 +11,7 @@ import { Avatar, StateLabel, type AvatarState } from "@/features/simulation/Avat
 import { SimulationProgress } from "@/features/simulation/SimulationProgress";
 import { useSpeechInput, useSpeechOutput } from "@/features/simulation/useSpeech";
 import { useVideoAvatar } from "@/features/simulation/useVideoAvatar";
+import { AVATARS, DEFAULT_AVATAR_KEY } from "@/features/simulation/avatar-catalog.mjs";
 import { api, isAbort, USE_MOCK } from "@/lib/api";
 import { levelInfo, sceneTitle } from "@/lib/labels";
 import { hasCrisisSignal, MESSAGE_MAX } from "@/lib/safety";
@@ -19,15 +20,58 @@ import type { ChatLine, Level, SceneId, SimulationStart } from "@/types/api";
 // S6 AI 롤플레이. 대화는 이 화면 메모리에만 있고, 서버는 매 요청에 받은 history로만 답한다(무상태).
 export default function SessionPage() {
   const { state } = useFlow();
-  const [videoMode, setVideoMode] = useState<boolean | null>(null);
-  useEffect(() => { setVideoMode(new URLSearchParams(window.location.search).get("avatar") === "1"); }, []);
+  // undefined: 주소를 아직 읽지 않음, null: 채팅 연습, 문자열: 고른 영상 아바타 key
+  const [avatarKey, setAvatarKey] = useState<string | null | undefined>(undefined);
+  useEffect(() => { setAvatarKey(avatarFromQuery(new URLSearchParams(window.location.search).get("avatar"))); }, []);
   // 공고를 고르지 않고 "말 연습" 탭에서 바로 온 경우에도 일반적인 청년 프로그램 상황으로 연습한다
   const ready = useRequire(state.sceneId !== null && state.level !== null, "/practice");
-  if (!ready || videoMode === null) return null;
-  return <Session sceneId={state.sceneId!} level={state.level!} programTitle={state.program?.title ?? GENERAL_TITLE} general={state.program === null} concerns={state.concerns} videoMode={videoMode} />;
+  if (!ready || avatarKey === undefined) return null;
+  return (
+    <Session
+      sceneId={state.sceneId!}
+      level={state.level!}
+      programTitle={state.program?.title ?? GENERAL_TITLE}
+      general={state.program === null}
+      concerns={state.concerns}
+      avatarKey={avatarKey}
+      // 영상 연결이 안 되면 같은 대화를 채팅 화면에서 이어 간다. 새로고침해도 채팅으로 열리게 주소도 바꾼다.
+      onSwitchToChat={() => {
+        history.replaceState(history.state, "", "/practice/session");
+        setAvatarKey(null);
+      }}
+    />
+  );
+}
+
+/** 예전 주소(?avatar=1)는 기본 아바타로 연다. 목록에 없는 값이면 채팅 연습. */
+function avatarFromQuery(value: string | null) {
+  if (value === "1") return DEFAULT_AVATAR_KEY;
+  return AVATARS.some((a) => a.key === value) ? value : null;
 }
 
 const GENERAL_TITLE = "청년 프로그램";
+
+/** 영상 연결 실패 이유를 다음 행동과 함께 말한다. 개발 시연용이라 설정 이름도 적는다. */
+function videoFailureText(failure: string | null) {
+  switch (failure) {
+    case "worker":
+      return "아바타 워커가 응답하지 않아요. frontend에서 npm run avatar:worker 를 실행해 주세요.";
+    case "not_configured":
+      return "LiveKit·Synthesia 설정이 비어 있어요. backend/.env 를 확인해 주세요.";
+    case "unknown_avatar":
+      return "이 아바타의 ID가 올바른지, 이 계정에서 쓸 수 있는지 확인해 주세요.";
+    case "concurrency_limit":
+      return "다른 영상 연습이 진행 중이에요. 기존 연습을 종료하고 다시 시도해 주세요.";
+    case "quota_exceeded":
+      return "아바타 사용 한도에 도달했어요.";
+    case "auth":
+      return "아바타 서비스 인증을 확인해 주세요.";
+    case "timeout":
+      return "아바타가 제시간에 들어오지 않았어요. 잠시 뒤 다시 시도해 주세요.";
+    default:
+      return "채팅으로 이어서 하거나 다른 아바타를 골라 주세요.";
+  }
+}
 
 type Busy = "starting" | "sending" | "completing" | null;
 
@@ -37,7 +81,8 @@ function Session({
   programTitle,
   general,
   concerns,
-  videoMode,
+  avatarKey,
+  onSwitchToChat,
 }: {
   sceneId: SceneId;
   level: Level;
@@ -45,8 +90,12 @@ function Session({
   /** 공고 없이 하는 연습. 흐름 단계 표시를 하지 않고, 노선에서 다녀왔는지 묻지 않는다. */
   general: boolean;
   concerns: string[];
-  videoMode: boolean;
+  /** 영상 아바타 key. null이면 채팅 연습 */
+  avatarKey: string | null;
+  onSwitchToChat: () => void;
 }) {
+  const videoMode = avatarKey !== null;
+  const avatarName = AVATARS.find((a) => a.key === avatarKey)?.name;
   const step = general ? undefined : 4;
   const router = useRouter();
   const { state, update, addStop } = useFlow();
@@ -75,7 +124,7 @@ function Session({
 
   const info = levelInfo(level);
   const isMock = USE_MOCK || mock || sim?.source === "MOCK";
-  const video = useVideoAvatar(videoMode);
+  const video = useVideoAvatar(avatarKey);
   const videoSpeak = video.speak;
 
   const tts = useSpeechOutput(
@@ -431,7 +480,7 @@ function Session({
             <button type="button" aria-label="연습 나가기" onClick={() => setConfirm(true)} className="grid size-10 shrink-0 place-items-center rounded-full bg-black/25 text-white"><ArrowLeft size={21} aria-hidden /></button>
             <div className="min-w-0 flex-1 text-center">
               <h1 className="truncate text-[15px] font-semibold">{sceneTitle(sceneId)}</h1>
-              <p className="mt-0.5 text-xs text-white/75">{level} · {info.title}</p>
+              <p className="mt-0.5 text-xs text-white/75">{avatarName && `${avatarName} · `}{level} · {info.title}</p>
             </div>
             <button type="button" aria-label={muted ? "상대방 소리 켜기" : "상대방 소리 끄기"} aria-pressed={muted} onClick={() => { video.setMuted(!muted); setMuted(!muted); if (muted) video.playAudio(); }} className="grid size-10 shrink-0 place-items-center rounded-full bg-black/25 text-white">{muted ? <VolumeX size={20} aria-hidden /> : <Volume2 size={20} aria-hidden />}</button>
           </header>
@@ -439,9 +488,14 @@ function Session({
           {video.status !== "ready" && (
             <div role="status" className="absolute inset-0 grid place-items-center px-8 text-center">
               <div className="rounded-2xl bg-black/55 px-6 py-5 backdrop-blur-sm">
-                <p className="font-semibold">{video.status === "failed" ? "영상 연결이 원활하지 않아요" : "연습 상대를 연결하고 있어요"}</p>
-                <p className="mt-2 text-sm text-white/80">{video.status !== "failed" ? "잠시만 기다려 주세요." : video.failure === "unknown_avatar" ? "아바타 ID가 올바른지, 이 계정에서 사용할 수 있는지 확인해 주세요." : video.failure === "concurrency_limit" ? "다른 영상 연습이 진행 중이에요. 기존 연습을 종료하고 다시 시도해 주세요." : video.failure === "quota_exceeded" ? "아바타 사용 한도에 도달했어요." : video.failure === "auth" ? "아바타 서비스 인증을 확인해 주세요." : "다시 시도하거나 채팅으로 연습할 수 있어요."}</p>
-                {video.status === "failed" && <button type="button" onClick={() => router.push("/practice/avatar")} className="mt-4 rounded-full bg-white px-4 py-2 text-sm font-semibold text-[#20232d]">연습 방식 다시 고르기</button>}
+                <p className="font-semibold">{video.status === "failed" ? "영상 연결이 원활하지 않아요" : `${avatarName ?? "연습 상대"}${avatarName ? "님을" : "를"} 연결하고 있어요`}</p>
+                <p className="mt-2 text-sm text-white/80">{video.status !== "failed" ? "처음 연결은 30초쯤 걸릴 수 있어요." : videoFailureText(video.failure)}</p>
+                {video.status === "failed" && (
+                  <div className="mt-4 flex flex-wrap justify-center gap-2">
+                    <button type="button" onClick={onSwitchToChat} className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-[#20232d]">채팅으로 이어서 하기</button>
+                    <button type="button" onClick={() => router.push("/practice/avatar/select")} className="rounded-full border border-white/40 px-4 py-2 text-sm font-semibold text-white">다른 아바타 고르기</button>
+                  </div>
+                )}
               </div>
             </div>
           )}

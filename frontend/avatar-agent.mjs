@@ -3,8 +3,10 @@ import { config } from 'dotenv';
 import { cli, defineAgent, inference, ServerOptions, voice } from '@livekit/agents';
 import { RoomEvent } from '@livekit/rtc-node';
 import { AvatarSession } from '@livekit/agents-plugin-synthesia';
+import { configuredAvatars, DEFAULT_AVATAR_KEY } from './src/features/simulation/avatar-catalog.mjs';
 
-config({ path: new URL('../backend/.env', import.meta.url).pathname, quiet: true });
+// URL.pathname은 Windows에서 /C:/... 가 되어 dotenv가 파일을 못 찾는다(quiet라 오류도 안 보인다).
+config({ path: fileURLToPath(new URL('../backend/.env', import.meta.url)), quiet: true });
 
 export default defineAgent({
   entry: async (ctx) => {
@@ -27,14 +29,20 @@ export default defineAgent({
       ctx.shutdown('no participant');
       return;
     }
+    // 토큰 라우트가 고른 아바타 key를 작업 메타데이터로 넘긴다. 실제 ID는 이 워커의 환경 변수에서만 찾는다.
+    let requested = DEFAULT_AVATAR_KEY;
+    try { requested = JSON.parse(ctx.job.metadata || '{}').avatar ?? DEFAULT_AVATAR_KEY; } catch {}
+    const choice = configuredAvatars(process.env).get(requested);
+    if (!choice) {
+      await ctx.room.localParticipant.publishData(new TextEncoder().encode('unknown_avatar'), { topic: 'onestep.avatar.error', reliable: true }).catch(() => {});
+      await ctx.room.disconnect();
+      ctx.shutdown('avatar not configured');
+      return;
+    }
     const session = new voice.AgentSession({
-      tts: new inference.TTS({
-        model: 'cartesia/sonic-3',
-        voice: process.env.AVATAR_TTS_VOICE || 'db6b0ed5-d5d3-463d-ae85-518a07d3c2b4',
-        language: 'ko',
-      }),
+      tts: new inference.TTS({ model: 'cartesia/sonic-3', voice: choice.voice, language: 'ko' }),
     });
-    const avatar = new AvatarSession({ avatarIds: [process.env.SYNTHESIA_AVATAR_ID] }, { joinTimeout: 60000 });
+    const avatar = new AvatarSession({ avatarIds: [choice.avatarId] }, { joinTimeout: 60000 });
     try {
       await avatar.start(session, ctx.room);
     } catch (error) {
