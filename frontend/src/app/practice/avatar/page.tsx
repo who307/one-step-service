@@ -24,7 +24,7 @@ export default function PracticeAvatarPage() {
           <span className="rounded-xl bg-[#eeedff] p-3 text-[#514ef5]"><MessageCircle size={22} aria-hidden /></span>
           <span className="flex-1"><strong className="block">채팅으로 연습하기</strong><span className="text-sm text-ink-3">글자와 음성 입력으로 연습해요</span></span><ChevronRight size={20} aria-hidden />
         </button>
-        <button type="button" disabled={!videoAvailable} onClick={() => router.push("/practice/session?avatar=1")} className="flex min-h-20 items-center gap-4 rounded-2xl border border-line bg-surface p-4 text-left disabled:opacity-60">
+        <button type="button" disabled={!videoAvailable} onClick={() => router.push("/practice/avatar/select")} className="flex min-h-20 items-center gap-4 rounded-2xl border border-line bg-surface p-4 text-left disabled:opacity-60">
           <span className="rounded-xl bg-surface-2 p-3 text-ink-3"><Video size={22} aria-hidden /></span>
           <span className="flex-1"><strong className="block">아바타 영상으로 연습하기</strong><span className="text-sm text-ink-3">{videoAvailable ? "실시간 영상으로 연습해요" : "영상 연결 준비 중"}</span></span><ChevronRight size={20} aria-hidden />
         </button>

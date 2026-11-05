@@ -199,7 +199,10 @@ public class OpenAiConversationProvider implements AiConversationProvider {
             raw = response == null ? "" : new String(response, StandardCharsets.UTF_8);
         } catch (RestClientResponseException e) {
             int status = e.getStatusCode().value();
-            log.warn("openai call failed op={} status={} latencyMs={}", operation, status, elapsed(start));
+            // 오류 본문의 code·param 만 남긴다. 설정 오류(예: 모델이 받지 않는 reasoning_effort)를 로그로 찾을 수 있게 한다.
+            log.warn("openai call failed op={} status={} code={} param={} latencyMs={}", operation, status,
+                    errorField(objectMapper, e.getResponseBodyAsByteArray(), "code"),
+                    errorField(objectMapper, e.getResponseBodyAsByteArray(), "param"), elapsed(start));
             throw new ApiException(status == HttpStatus.TOO_MANY_REQUESTS.value()
                     ? ErrorCode.RATE_LIMITED : ErrorCode.LLM_ERROR);
         } catch (ResourceAccessException e) {
@@ -269,6 +272,16 @@ public class OpenAiConversationProvider implements AiConversationProvider {
             trimmed = trimmed.replaceFirst("^```(json)?", "").replaceFirst("```$", "").trim();
         }
         return trimmed;
+    }
+
+    /** OpenAI 오류 본문 {@code {"error":{"code":..,"param":..}}} 에서 짧은 식별자만 꺼낸다. 메시지는 읽지 않는다. */
+    static String errorField(ObjectMapper mapper, byte[] body, String field) {
+        try {
+            String value = mapper.readTree(body).path("error").path(field).asString("");
+            return value.matches("[A-Za-z0-9_.\\-]{1,64}") ? value : "-";
+        } catch (RuntimeException ignored) {
+            return "-";
+        }
     }
 
     private static boolean isTimeout(Throwable e) {
