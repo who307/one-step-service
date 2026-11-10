@@ -6,7 +6,12 @@
 
 ## 배포 데모
 
-> 배포 주소: _(Vercel 배포 후 추가)_
+| 구분 | 배포 주소 | 저장소 |
+|---|---|---|
+| **한걸음** (팀 프로젝트) | [one-step-service-phi.vercel.app](https://one-step-service-phi.vercel.app) | [who307/one-step-service](https://github.com/who307/one-step-service) (이 저장소) |
+| 초기 프로토타입 | [one-step-service-prototype.vercel.app](https://one-step-service-prototype.vercel.app) | [who307/one-step-service-prototype](https://github.com/who307/one-step-service-prototype) |
+
+초기 프로토타입은 팀 협업을 시작하기 전에 만든 화면·구조 작업본입니다. 이 저장소의 첫 커밋(`30cedf2`)이 그 작업본이고, 이후 팀이 기능을 나눠 이 저장소에서 완성했습니다.
 
 배포본은 **프론트엔드만** 올린 시연용입니다. 백엔드 없이 예시(Mock) 데이터로 처음부터 끝까지 같은 흐름을 체험할 수 있고, 예시라는 사실은 화면에 "예시"·"예시 응답"으로 표시됩니다.
 
@@ -63,26 +68,42 @@
 
 ## 실행 (로컬 시연)
 
+필요한 것: Node.js 18.18 이상(Next.js 15), 백엔드까지 켤 때는 Java 21. DB는 필요 없습니다.
+
+### 1) 프론트만 실행: 예시(Mock) 데이터
+
+배포본과 같은 상태입니다. `frontend/.env.local`이 없으면 Mock 모드가 기본값이라, 백엔드 없이 처음부터 끝까지 같은 흐름이 동작합니다.
+
 ```bash
-# 1) 프론트만: 백엔드 없이 예시(Mock) 데이터로 전체 흐름이 동작
 cd frontend
 npm install
-cp .env.example .env.local
 npm run dev            # http://localhost:3000
 ```
 
+### 2) 백엔드까지 실행
+
+터미널 두 개를 씁니다. 키를 비워 두면 백엔드도 예시 공고·예시 응답으로 동작합니다.
+
 ```bash
-# 2) 백엔드까지: Java 21, DB 필요 없음
+# 터미널 1: 백엔드 (http://localhost:8080/api/v1)
 cd backend
-./gradlew bootRun      # http://localhost:8080/api/v1  (Windows: gradlew.bat bootRun)
-# frontend/.env.local 에서 NEXT_PUBLIC_USE_MOCK=false 로 바꾸고 프론트를 다시 켠다
+cp .env.example .env          # 필요한 키만 채운다 (아래 참고)
+./gradlew bootRun             # Windows PowerShell: .\gradlew.bat bootRun
 ```
 
-키는 `backend/.env.example`을 `backend/.env`로 복사해 넣습니다. `bootRun`이 이 파일을 읽고, `.env`는 커밋하지 않습니다. 키는 브라우저로 보내지 않습니다.
+```bash
+# 터미널 2: 프론트
+cd frontend
+cp .env.example .env.local    # NEXT_PUBLIC_USE_MOCK=false, NEXT_PUBLIC_API_BASE=http://localhost:8080/api/v1
+npm run dev
+```
+
+`bootRun`이 `backend/.env`를 읽습니다(이미 설정된 환경변수가 우선). `.env`·`.env.local`은 커밋하지 않고, 키는 브라우저로 보내지 않습니다.
 
 - 실제 공고(온통청년): `YOUTHCENTER_ENABLED=true`, `YOUTHCENTER_API_KEY=...`. 켜면 연습 대화에서 고른 공고의 원문을 근거로 씁니다(30분 메모리 캐시, 4초 넘게 걸리면 원문 없이 답함).
 - 실제 AI(OpenAI): `OPENAI_ENABLED=true`, `OPENAI_API_KEY=...`. 모델은 `OPENAI_MODEL`(기본 `gpt-5.4-mini`). 키가 없으면 Mock 연습 상대가 동작하고 화면에 "예시 응답"으로 표시됩니다.
 - 8080을 다른 앱이 쓰고 있으면 `.env`에 `SERVER_PORT=8081`을 넣고, `frontend/.env.local`의 `NEXT_PUBLIC_API_BASE`도 같은 포트로 맞춥니다.
+- 3000을 다른 앱이 쓰고 있으면 Next가 3001 등 다른 포트로 열립니다. 백엔드는 `CORS_ORIGINS`(기본 `http://localhost:3000`)에 적힌 주소의 요청만 받으므로, `npm run dev -- -p 3005`처럼 포트를 정해 열고 `backend/.env`의 `CORS_ORIGINS`도 같은 주소로 맞춥니다.
 
 ### 선택 기능
 
